@@ -4520,6 +4520,10 @@ function renderPuzzle(line) {
     const boardStateStr = parts[0];
     currentPlayer = parts[1];
 
+    // Reset turn message
+    document.getElementById('next-turn-msg').textContent = '次の手番:';
+    document.getElementById('current-player').style.display = 'block';
+
     currentBoard = [];
     for (let r = 0; r < 8; r++) {
         currentBoard[r] = boardStateStr.substring(r * 8, (r + 1) * 8).split('');
@@ -4566,6 +4570,8 @@ function updateUI() {
     document.getElementById('white-count').textContent = whiteCount;
     turnDisplay.className = `player-indicator ${currentPlayer === 'X' ? 'black' : 'white'}`;
     puzzleInfo.textContent = `パズルを表示中 (条件に合う全 ${puzzles.length} 件)`;
+    
+    return { blackCount, whiteCount };
 }
 
 function handleCellClick(r, c) {
@@ -4585,16 +4591,22 @@ function handleCellClick(r, c) {
     } else {
         if (hasValidMove(currentPlayer)) {
             updateUI();
-            showModal('パス', `${nextPlayer === 'X' ? '黒' : '白'}に有効な手がありません。パスします。`, () => {
+            showModal('パス', `${nextPlayer === 'X' ? '黒' : '白'}に有効な手がありません。\nパスします。`, () => {
                 // Keep the same player's turn
             });
         } else {
-            updateUI();
-            showModal('ゲーム終了', '両方のプレーヤーに有効な手がありません。', () => {
-                // End state
-            });
+            const counts = updateUI();
+            const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
+            document.getElementById('next-turn-msg').textContent = resultMsg;
+            document.getElementById('current-player').style.display = 'none';
         }
     }
+}
+
+function getWinnerMessage(black, white) {
+    if (black > white) return `黒の勝ち！ (${black} vs ${white})`;
+    if (white > black) return `白の勝ち！ (${white} vs ${black})`;
+    return `引き分け (${black} vs ${white})`;
 }
 
 function hasValidMove(color) {
