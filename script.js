@@ -4421,6 +4421,7 @@ XOOOOOO-X-OOOO--XOXOOOXXXOXOOXO-XOOXXXXOXOOXXXXOX-XXXXXO-XXXXXX- X
 const BOARD_SIZE = 8;
 const boardElement = document.getElementById('board');
 const nextButton = document.getElementById('next-button');
+const resetButton = document.getElementById('reset-button');
 const turnDisplay = document.getElementById('current-player');
 const puzzleInfo = document.getElementById('puzzle-info');
 const modalOverlay = document.getElementById('modal-overlay');
@@ -4433,6 +4434,7 @@ let puzzles = [];
 
 let currentBoard = [];
 let currentPlayer = 'X';
+let currentPuzzleLine = '';
 let modalCallback = null;
 
 function init() {
@@ -4514,6 +4516,7 @@ function loadRandomPuzzle() {
 }
 
 function renderPuzzle(line) {
+    currentPuzzleLine = line;
     const parts = line.split(' ').filter(p => p.length > 0);
     if (parts.length < 2) return;
 
@@ -4657,5 +4660,10 @@ function isValidMove(r, c, color) {
 }
 
 nextButton.addEventListener('click', loadRandomPuzzle);
+resetButton.addEventListener('click', () => {
+    if (currentPuzzleLine) {
+        renderPuzzle(currentPuzzleLine);
+    }
+});
 
 init();

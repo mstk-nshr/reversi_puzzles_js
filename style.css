@@ -277,16 +277,28 @@ header p {
     background: rgba(16, 185, 129, 0.1);
 }
 
-.btn-primary {
-    padding: 0.75rem 2rem;
-    font-size: 1rem;
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    width: 100%;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    color: white;
-    background: var(--primary-color);
     border: none;
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s;
+    flex: 1;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    color: white;
+    background: var(--primary-color);
     box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
 }
 
@@ -296,7 +308,19 @@ header p {
     box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
 }
 
-.btn-primary:active {
+.btn-secondary {
+    color: var(--text-color);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.btn-primary:active, .btn-secondary:active {
     transform: translateY(0);
 }
 
