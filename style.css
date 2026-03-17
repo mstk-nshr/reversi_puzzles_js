@@ -111,6 +111,7 @@ header p {
 
 .stone.white {
     background: radial-gradient(circle at 30% 30%, #ffffff, #e2e8f0);
+    color: #020617;
 }
 
 .controls {
