@@ -4673,4 +4673,19 @@ resetButton.addEventListener('click', () => {
     }
 });
 
+// Add keyboard shortcuts
+window.addEventListener('keydown', (e) => {
+    // If the user is typing in a text field, don't trigger shortcuts
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    const key = e.key.toLowerCase();
+    if (key === 'n') {
+        loadRandomPuzzle();
+    } else if (key === 'r') {
+        if (currentPuzzleLine) {
+            renderPuzzle(currentPuzzleLine);
+        }
+    }
+});
+
 init();
