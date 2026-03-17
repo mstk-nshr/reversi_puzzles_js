@@ -4435,6 +4435,7 @@ let puzzles = [];
 let currentBoard = [];
 let currentPlayer = 'X';
 let currentPuzzleLine = '';
+let currentPuzzleIndex = -1;
 let modalCallback = null;
 
 function init() {
@@ -4511,6 +4512,7 @@ function applyFilter() {
 function loadRandomPuzzle() {
     if (puzzles.length === 0) return;
     const randomIndex = Math.floor(Math.random() * puzzles.length);
+    currentPuzzleIndex = randomIndex;
     const puzzleData = puzzles[randomIndex].line;
     renderPuzzle(puzzleData);
 }
@@ -4572,8 +4574,12 @@ function updateUI() {
     document.getElementById('black-count').textContent = blackCount;
     document.getElementById('white-count').textContent = whiteCount;
     turnDisplay.className = `player-indicator ${currentPlayer === 'X' ? 'black' : 'white'}`;
-    // puzzleInfo.textContent = `パズルを表示中 (条件に合う全 ${puzzles.length} 件)`;
-    puzzleInfo.textContent = `${puzzles.length} 問が検出されました。`;
+    
+    if (currentPuzzleIndex !== -1 && puzzles[currentPuzzleIndex]) {
+        const p = puzzles[currentPuzzleIndex];
+        const turnText = p.turn === 'X' ? '黒番' : '白番';
+        puzzleInfo.textContent = `第 ${currentPuzzleIndex + 1} / ${puzzles.length} 問：${turnText}、${p.emptyCells} マス問題です`;
+    }
     
     return { blackCount, whiteCount };
 }

@@ -13,10 +13,6 @@
     <div class="container">
         <header>
             <h1>Reversi Puzzle</h1>
-            <p id="puzzle-info">局面を読み込んでいます...</p>
-        </header>
-        
-        <main>
             <div class="filter-panel control-panel consolidated">
                 <div class="filter-section horizontal">
                     <span>手番絞り込み:</span>
@@ -29,7 +25,7 @@
                 <div class="filter-divider"></div>
                 <div class="filter-section">
                     <div class="empty-cells-header">
-                        <span>空きセル数:</span>
+                        <span>空きマス数:</span>
                         <button id="select-all-empty" class="btn-text">全選択</button>
                     </div>
                     <div class="checkbox-group">
@@ -43,6 +39,10 @@
                     </div>
                 </div>
             </div>
+        </header>
+        
+        <main>
+            <p id="puzzle-info">局面を読み込んでいます...</p>
 
             <div id="board-container">
                 <div id="board"></div>
