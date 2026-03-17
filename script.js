@@ -4584,20 +4584,20 @@ function handleCellClick(r, c) {
     });
 
     const nextPlayer = (currentPlayer === 'X' ? 'O' : 'X');
+    const msgArea = document.getElementById('next-turn-msg');
     
     if (hasValidMove(nextPlayer)) {
         currentPlayer = nextPlayer;
+        msgArea.textContent = '次の手番:';
         updateUI();
     } else {
         if (hasValidMove(currentPlayer)) {
             updateUI();
-            showModal('パス', `${nextPlayer === 'X' ? '黒' : '白'}に有効な手がありません。\nパスします。`, () => {
-                // Keep the same player's turn
-            });
+            msgArea.textContent = `${nextPlayer === 'X' ? '黒' : '白'}番がパスしました。次の手番:`;
         } else {
             const counts = updateUI();
             const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
-            document.getElementById('next-turn-msg').textContent = resultMsg;
+            msgArea.textContent = resultMsg;
             document.getElementById('current-player').style.display = 'none';
         }
     }
