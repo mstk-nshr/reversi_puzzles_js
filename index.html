@@ -42,7 +42,13 @@
         </header>
         
         <main>
-            <p id="puzzle-info">局面を読み込んでいます...</p>
+            <div class="info-action-bar">
+                <p id="puzzle-info">局面を読み込んでいます...</p>
+                <div class="action-buttons">
+                    <button id="next-button" class="btn-primary" title="別のパズル">&#x23ED;</button>
+                    <button id="reset-button" class="btn-secondary" title="始めからやり直す">&#x21BB;</button>
+                </div>
+            </div>
 
             <div id="board-container">
                 <div id="board"></div>
@@ -62,10 +68,6 @@
                 <div id="turn-display" class="control-panel">
                     <span id="next-turn-msg">次の手番:</span>
                     <div id="current-player" class="player-indicator"></div>
-                </div>
-                <div class="action-buttons">
-                    <button id="next-button" class="btn-primary">別のパズル</button>
-                    <button id="reset-button" class="btn-secondary">始めからやり直す</button>
                 </div>
             </div>
         </main>
