@@ -4572,7 +4572,8 @@ function updateUI() {
     document.getElementById('black-count').textContent = blackCount;
     document.getElementById('white-count').textContent = whiteCount;
     turnDisplay.className = `player-indicator ${currentPlayer === 'X' ? 'black' : 'white'}`;
-    puzzleInfo.textContent = `パズルを表示中 (条件に合う全 ${puzzles.length} 件)`;
+    // puzzleInfo.textContent = `パズルを表示中 (条件に合う全 ${puzzles.length} 件)`;
+    puzzleInfo.textContent = `${puzzles.length} 問が検出されました。`;
     
     return { blackCount, whiteCount };
 }

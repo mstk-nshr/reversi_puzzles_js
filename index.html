@@ -17,37 +17,38 @@
         </header>
         
         <main>
+            <div class="filter-panel control-panel consolidated">
+                <div class="filter-section horizontal">
+                    <span>手番絞り込み:</span>
+                    <div class="radio-group">
+                        <label><input type="radio" name="turn" value="all" checked> 全て</label>
+                        <label><input type="radio" name="turn" value="X"> 黒番</label>
+                        <label><input type="radio" name="turn" value="O"> 白番</label>
+                    </div>
+                </div>
+                <div class="filter-divider"></div>
+                <div class="filter-section">
+                    <div class="empty-cells-header">
+                        <span>空きセル数:</span>
+                        <button id="select-all-empty" class="btn-text">全選択</button>
+                    </div>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="empty-check" value="2" checked> 2</label>
+                        <label><input type="checkbox" class="empty-check" value="3" checked> 3</label>
+                        <label><input type="checkbox" class="empty-check" value="4" checked> 4</label>
+                        <label><input type="checkbox" class="empty-check" value="5" checked> 5</label>
+                        <label><input type="checkbox" class="empty-check" value="6" checked> 6</label>
+                        <label><input type="checkbox" class="empty-check" value="7" checked> 7</label>
+                        <label><input type="checkbox" class="empty-check" value="8" checked> 8</label>
+                    </div>
+                </div>
+            </div>
+
             <div id="board-container">
                 <div id="board"></div>
             </div>
             
             <div class="controls">
-                <div class="filter-panel control-panel consolidated">
-                    <div class="filter-section horizontal">
-                        <span>手番絞り込み:</span>
-                        <div class="radio-group">
-                            <label><input type="radio" name="turn" value="all" checked> 全て</label>
-                            <label><input type="radio" name="turn" value="X"> 黒番</label>
-                            <label><input type="radio" name="turn" value="O"> 白番</label>
-                        </div>
-                    </div>
-                    <div class="filter-divider"></div>
-                    <div class="filter-section">
-                        <div class="empty-cells-header">
-                            <span>空きセル数:</span>
-                            <button id="select-all-empty" class="btn-text">全選択</button>
-                        </div>
-                        <div class="checkbox-group">
-                            <label><input type="checkbox" class="empty-check" value="2" checked> 2</label>
-                            <label><input type="checkbox" class="empty-check" value="3" checked> 3</label>
-                            <label><input type="checkbox" class="empty-check" value="4" checked> 4</label>
-                            <label><input type="checkbox" class="empty-check" value="5" checked> 5</label>
-                            <label><input type="checkbox" class="empty-check" value="6" checked> 6</label>
-                            <label><input type="checkbox" class="empty-check" value="7" checked> 7</label>
-                            <label><input type="checkbox" class="empty-check" value="8" checked> 8</label>
-                        </div>
-                    </div>
-                </div>
                 <div class="stone-counts control-panel">
                     <div class="count-item">
                         <div class="stone black" style="width:30px; height:30px;"></div>
