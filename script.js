@@ -4427,6 +4427,9 @@ const puzzleInfo = document.getElementById('puzzle-info');
 let allPuzzles = [];
 let puzzles = [];
 
+let currentBoard = [];
+let currentPlayer = 'X';
+
 function init() {
     allPuzzles = DB_DATA.split('\n')
         .map(line => line.trim())
@@ -4501,39 +4504,101 @@ function renderPuzzle(line) {
     const parts = line.split(' ').filter(p => p.length > 0);
     if (parts.length < 2) return;
 
-    const boardState = parts[0];
-    const nextPlayer = parts[1];
+    const boardStateStr = parts[0];
+    currentPlayer = parts[1];
 
+    currentBoard = [];
+    for (let r = 0; r < 8; r++) {
+        currentBoard[r] = boardStateStr.substring(r * 8, (r + 1) * 8).split('');
+    }
+
+    updateUI();
+}
+
+function updateUI() {
+    boardElement.innerHTML = '';
     let blackCount = 0;
     let whiteCount = 0;
 
-    boardElement.innerHTML = '';
-    
-    for (let i = 0; i < 64; i++) {
-        const char = boardState[i];
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        
-        if (char === 'X') {
-            blackCount++;
-            const stone = document.createElement('div');
-            stone.className = 'stone black';
-            cell.appendChild(stone);
-        } else if (char === 'O') {
-            whiteCount++;
-            const stone = document.createElement('div');
-            stone.className = 'stone white';
-            cell.appendChild(stone);
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const char = currentBoard[r][c];
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            
+            if (char === 'X') {
+                blackCount++;
+                const stone = document.createElement('div');
+                stone.className = 'stone black';
+                // stone.textContent = 'Black';
+                stone.textContent = '';
+                cell.appendChild(stone);
+            } else if (char === 'O') {
+                whiteCount++;
+                const stone = document.createElement('div');
+                stone.className = 'stone white';
+                // stone.textContent = 'White';
+                stone.textContent = '';
+                cell.appendChild(stone);
+            } else {
+                if (isValidMove(r, c, currentPlayer).length > 0) {
+                    cell.classList.add('valid-move');
+                }
+            }
+
+            cell.addEventListener('click', () => handleCellClick(r, c));
+            boardElement.appendChild(cell);
         }
-        
-        boardElement.appendChild(cell);
     }
 
     document.getElementById('black-count').textContent = blackCount;
     document.getElementById('white-count').textContent = whiteCount;
-
-    turnDisplay.className = `player-indicator ${nextPlayer === 'X' ? 'black' : 'white'}`;
+    turnDisplay.className = `player-indicator ${currentPlayer === 'X' ? 'black' : 'white'}`;
     puzzleInfo.textContent = `パズルを表示中 (条件に合う全 ${puzzles.length} 件)`;
+}
+
+function handleCellClick(r, c) {
+    const flipList = isValidMove(r, c, currentPlayer);
+    if (flipList.length === 0) return;
+
+    currentBoard[r][c] = currentPlayer;
+    flipList.forEach(([fr, fc]) => {
+        currentBoard[fr][fc] = currentPlayer;
+    });
+
+    currentPlayer = (currentPlayer === 'X' ? 'O' : 'X');
+    updateUI();
+}
+
+function isValidMove(r, c, color) {
+    if (currentBoard[r][c] !== '-') return [];
+
+    const opponent = (color === 'X' ? 'O' : 'X');
+    const directions = [
+        [-1, -1], [-1, 0], [-1, 1],
+        [0, -1],           [0, 1],
+        [1, -1],  [1, 0],  [1, 1]
+    ];
+
+    let allFlips = [];
+
+    for (const [dr, dc] of directions) {
+        let currentFlips = [];
+        let tr = r + dr;
+        let tc = c + dc;
+
+        while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && currentBoard[tr][tc] === opponent) {
+            currentFlips.push([tr, tc]);
+            tr += dr;
+            tc += dc;
+        }
+
+        if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && currentBoard[tr][tc] === color && currentFlips.length > 0) {
+            allFlips = allFlips.concat(currentFlips);
+        }
+    }
+
+    return allFlips;
 }
 
 nextButton.addEventListener('click', loadRandomPuzzle);
