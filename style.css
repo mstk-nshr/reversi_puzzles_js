@@ -125,7 +125,7 @@ header p {
     align-items: center;
     gap: 1rem;
     padding: 0.75rem 1.5rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.25);
     border-radius: 9999px;
     border: 1px solid var(--glass-border);
 }
@@ -134,15 +134,102 @@ header p {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-    border: 1px solid var(--glass-border);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
 }
 
 .player-indicator.black {
-    background: var(--black-stone);
+    background: radial-gradient(circle at 30% 30%, #475569, #020617);
 }
 
 .player-indicator.white {
-    background: var(--white-stone);
+    background: radial-gradient(circle at 30% 30%, #ffffff, #e2e8f0);
+}
+
+.radio-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.radio-group label:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.radio-group input[type="radio"] {
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.empty-cells-filter {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    padding: 1rem 1.5rem !important;
+    border-radius: 18px !important;
+}
+
+.empty-cells-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.checkbox-group label:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.empty-check {
+    cursor: pointer;
+    accent-color: var(--primary-color);
+}
+
+.btn-text {
+    background: transparent;
+    border: none;
+    color: var(--primary-color);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.btn-text:hover {
+    background: rgba(16, 185, 129, 0.1);
 }
 
 .btn-primary {

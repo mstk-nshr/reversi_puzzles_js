@@ -4424,24 +4424,76 @@ const nextButton = document.getElementById('next-button');
 const turnDisplay = document.getElementById('current-player');
 const puzzleInfo = document.getElementById('puzzle-info');
 
+let allPuzzles = [];
 let puzzles = [];
 
 function init() {
-    puzzles = DB_DATA.split('\n')
+    allPuzzles = DB_DATA.split('\n')
         .map(line => line.trim())
-        .filter(line => line.length > 0 && !line.startsWith('#'));
+        .filter(line => line.length > 0 && !line.startsWith('#'))
+        .map(line => {
+            const parts = line.split(' ').filter(p => p.length > 0);
+            const boardState = parts[0];
+            const emptyCount = (boardState.match(/-/g) || []).length;
+            return {
+                line: line,
+                turn: parts[1],
+                emptyCells: emptyCount
+            };
+        });
     
-    if (puzzles.length === 0) {
+    if (allPuzzles.length === 0) {
         puzzleInfo.textContent = 'パズルデータが見つかりません。';
         return;
     }
+
+    const turnRadios = document.querySelectorAll('input[name="turn"]');
+    turnRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            applyFilter();
+            loadRandomPuzzle();
+        });
+    });
+
+    const emptyChecks = document.querySelectorAll('.empty-check');
+    emptyChecks.forEach(check => {
+        check.addEventListener('change', () => {
+            applyFilter();
+            loadRandomPuzzle();
+        });
+    });
+
+    const selectAllBtn = document.getElementById('select-all-empty');
+    selectAllBtn.addEventListener('click', () => {
+        emptyChecks.forEach(check => check.checked = true);
+        applyFilter();
+        loadRandomPuzzle();
+    });
     
+    applyFilter();
     loadRandomPuzzle();
 }
 
+function applyFilter() {
+    const turnFilterValue = document.querySelector('input[name="turn"]:checked').value;
+    const checkedEmptyCounts = Array.from(document.querySelectorAll('.empty-check:checked'))
+        .map(check => parseInt(check.value));
+
+    puzzles = allPuzzles.filter(p => {
+        const turnMatch = (turnFilterValue === 'all' || p.turn === turnFilterValue);
+        const emptyMatch = checkedEmptyCounts.includes(p.emptyCells);
+        return turnMatch && emptyMatch;
+    });
+
+    if (puzzles.length === 0) {
+        puzzleInfo.textContent = '条件に合うパズルがありません。';
+    }
+}
+
 function loadRandomPuzzle() {
+    if (puzzles.length === 0) return;
     const randomIndex = Math.floor(Math.random() * puzzles.length);
-    const puzzleData = puzzles[randomIndex];
+    const puzzleData = puzzles[randomIndex].line;
     renderPuzzle(puzzleData);
 }
 
@@ -4469,7 +4521,7 @@ function renderPuzzle(line) {
     }
 
     turnDisplay.className = `player-indicator ${nextPlayer === 'X' ? 'black' : 'white'}`;
-    puzzleInfo.textContent = `パズルを表示中 (全 ${puzzles.length} 件)`;
+    puzzleInfo.textContent = `パズルを表示中 (条件に合う全 ${puzzles.length} 件)`;
 }
 
 nextButton.addEventListener('click', loadRandomPuzzle);
