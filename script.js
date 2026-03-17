@@ -4423,12 +4423,17 @@ const boardElement = document.getElementById('board');
 const nextButton = document.getElementById('next-button');
 const turnDisplay = document.getElementById('current-player');
 const puzzleInfo = document.getElementById('puzzle-info');
+const modalOverlay = document.getElementById('modal-overlay');
+const modalTitle = document.getElementById('modal-title');
+const modalMessage = document.getElementById('modal-message');
+const modalOkBtn = document.getElementById('modal-ok-btn');
 
 let allPuzzles = [];
 let puzzles = [];
 
 let currentBoard = [];
 let currentPlayer = 'X';
+let modalCallback = null;
 
 function init() {
     allPuzzles = DB_DATA.split('\n')
@@ -4471,6 +4476,14 @@ function init() {
         emptyChecks.forEach(check => check.checked = true);
         applyFilter();
         loadRandomPuzzle();
+    });
+
+    modalOkBtn.addEventListener('click', () => {
+        modalOverlay.classList.add('hidden');
+        if (modalCallback) {
+            modalCallback();
+            modalCallback = null;
+        }
     });
     
     applyFilter();
@@ -4530,14 +4543,12 @@ function updateUI() {
                 blackCount++;
                 const stone = document.createElement('div');
                 stone.className = 'stone black';
-                // stone.textContent = 'Black';
                 stone.textContent = '';
                 cell.appendChild(stone);
             } else if (char === 'O') {
                 whiteCount++;
                 const stone = document.createElement('div');
                 stone.className = 'stone white';
-                // stone.textContent = 'White';
                 stone.textContent = '';
                 cell.appendChild(stone);
             } else {
@@ -4566,8 +4577,40 @@ function handleCellClick(r, c) {
         currentBoard[fr][fc] = currentPlayer;
     });
 
-    currentPlayer = (currentPlayer === 'X' ? 'O' : 'X');
-    updateUI();
+    const nextPlayer = (currentPlayer === 'X' ? 'O' : 'X');
+    
+    if (hasValidMove(nextPlayer)) {
+        currentPlayer = nextPlayer;
+        updateUI();
+    } else {
+        if (hasValidMove(currentPlayer)) {
+            updateUI();
+            showModal('パス', `${nextPlayer === 'X' ? '黒' : '白'}に有効な手がありません。パスします。`, () => {
+                // Keep the same player's turn
+            });
+        } else {
+            updateUI();
+            showModal('ゲーム終了', '両方のプレーヤーに有効な手がありません。', () => {
+                // End state
+            });
+        }
+    }
+}
+
+function hasValidMove(color) {
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            if (isValidMove(r, c, color).length > 0) return true;
+        }
+    }
+    return false;
+}
+
+function showModal(title, message, callback) {
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+    modalOverlay.classList.remove('hidden');
+    modalCallback = callback;
 }
 
 function isValidMove(r, c, color) {
