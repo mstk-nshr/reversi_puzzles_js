@@ -4504,6 +4504,9 @@ function renderPuzzle(line) {
     const boardState = parts[0];
     const nextPlayer = parts[1];
 
+    let blackCount = 0;
+    let whiteCount = 0;
+
     boardElement.innerHTML = '';
     
     for (let i = 0; i < 64; i++) {
@@ -4511,14 +4514,23 @@ function renderPuzzle(line) {
         const cell = document.createElement('div');
         cell.className = 'cell';
         
-        if (char === 'X' || char === 'O') {
+        if (char === 'X') {
+            blackCount++;
             const stone = document.createElement('div');
-            stone.className = `stone ${char === 'X' ? 'black' : 'white'}`;
+            stone.className = 'stone black';
+            cell.appendChild(stone);
+        } else if (char === 'O') {
+            whiteCount++;
+            const stone = document.createElement('div');
+            stone.className = 'stone white';
             cell.appendChild(stone);
         }
         
         boardElement.appendChild(cell);
     }
+
+    document.getElementById('black-count').textContent = blackCount;
+    document.getElementById('white-count').textContent = whiteCount;
 
     turnDisplay.className = `player-indicator ${nextPlayer === 'X' ? 'black' : 'white'}`;
     puzzleInfo.textContent = `パズルを表示中 (条件に合う全 ${puzzles.length} 件)`;
