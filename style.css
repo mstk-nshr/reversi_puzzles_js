@@ -161,6 +161,14 @@ main {
     cursor: default;
 }
 
+.cell .hint-text {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.7);
+    pointer-events: none;
+    z-index: 5;
+}
+
 .stone {
     width: 80%;
     height: 80%;

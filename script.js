@@ -4422,6 +4422,7 @@ const BOARD_SIZE = 8;
 const boardElement = document.getElementById('board');
 const nextButton = document.getElementById('next-button');
 const resetButton = document.getElementById('reset-button');
+const hintButton = document.getElementById('hint-button');
 const turnDisplay = document.getElementById('current-player');
 const puzzleInfo = document.getElementById('puzzle-info');
 const modalOverlay = document.getElementById('modal-overlay');
@@ -4437,6 +4438,8 @@ let currentPlayer = 'X';
 let currentPuzzleLine = '';
 let currentPuzzleIndex = -1;
 let lastMove = null;
+let showHints = false;
+let cachedHints = {};
 let modalCallback = null;
 
 function init() {
@@ -4521,6 +4524,8 @@ function loadRandomPuzzle() {
 function renderPuzzle(line) {
     currentPuzzleLine = line;
     lastMove = null;
+    showHints = false;
+    cachedHints = {};
     const parts = line.split(' ').filter(p => p.length > 0);
     if (parts.length < 2) return;
 
@@ -4571,6 +4576,13 @@ function updateUI() {
             } else {
                 if (isValidMove(r, c, currentPlayer).length > 0) {
                     cell.classList.add('valid-move');
+                    if (showHints && cachedHints[`${r}-${c}`] !== undefined) {
+                        const hintText = document.createElement('span');
+                        hintText.className = 'hint-text';
+                        const score = cachedHints[`${r}-${c}`];
+                        hintText.textContent = (score > 0 ? '+' : '') + score;
+                        cell.appendChild(hintText);
+                    }
                 }
             }
 
@@ -4597,6 +4609,8 @@ function handleCellClick(r, c) {
     if (flipList.length === 0) return;
 
     lastMove = { r, c };
+    showHints = false;
+    cachedHints = {};
     currentBoard[r][c] = currentPlayer;
     flipList.forEach(([fr, fc]) => {
         currentBoard[fr][fc] = currentPlayer;
@@ -4675,11 +4689,95 @@ function isValidMove(r, c, color) {
     return allFlips;
 }
 
+function getValidMoves(board, color) {
+    const moves = [];
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const flips = isValidMoveOnBoard(board, r, c, color);
+            if (flips.length > 0) moves.push({ r, c, flips });
+        }
+    }
+    return moves;
+}
+
+function isValidMoveOnBoard(board, r, c, color) {
+    if (board[r][c] !== '-') return [];
+    const opponent = (color === 'X' ? 'O' : 'X');
+    const directions = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+    let allFlips = [];
+    for (const [dr, dc] of directions) {
+        let currentFlips = [];
+        let tr = r + dr, tc = c + dc;
+        while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && board[tr][tc] === opponent) {
+            currentFlips.push([tr, tc]);
+            tr += dr; tc += dc;
+        }
+        if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && board[tr][tc] === color && currentFlips.length > 0) {
+            allFlips = allFlips.concat(currentFlips);
+        }
+    }
+    return allFlips;
+}
+
+function simulateGame(board, player) {
+    const moves = getValidMoves(board, player);
+    if (moves.length === 0) {
+        const nextPlayer = (player === 'X' ? 'O' : 'X');
+        if (getValidMoves(board, nextPlayer).length === 0) {
+            let black = 0, white = 0;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (board[r][c] === 'X') black++;
+                    else if (board[r][c] === 'O') white++;
+                }
+            }
+            return black - white;
+        }
+        return simulateGame(board, nextPlayer);
+    }
+
+    let bestValue = (player === 'X' ? -100 : 100);
+    for (const move of moves) {
+        const nextBoard = board.map(row => [...row]);
+        nextBoard[move.r][move.c] = player;
+        move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = player);
+        
+        const value = simulateGame(nextBoard, player === 'X' ? 'O' : 'X');
+        if (player === 'X') {
+            bestValue = Math.max(bestValue, value);
+        } else {
+            bestValue = Math.min(bestValue, value);
+        }
+    }
+    return bestValue;
+}
+
+function calculateHints() {
+    const moves = getValidMoves(currentBoard, currentPlayer);
+    cachedHints = {};
+    for (const move of moves) {
+        const nextBoard = currentBoard.map(row => [...row]);
+        nextBoard[move.r][move.c] = currentPlayer;
+        move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = currentPlayer);
+        cachedHints[`${move.r}-${move.c}`] = simulateGame(nextBoard, currentPlayer === 'X' ? 'O' : 'X');
+    }
+}
+
 nextButton.addEventListener('click', loadRandomPuzzle);
 resetButton.addEventListener('click', () => {
     if (currentPuzzleLine) {
         renderPuzzle(currentPuzzleLine);
     }
+});
+
+hintButton.addEventListener('click', () => {
+    if (showHints) {
+        showHints = false;
+    } else {
+        calculateHints();
+        showHints = true;
+    }
+    updateUI();
 });
 
 // Add keyboard shortcuts
@@ -4694,6 +4792,8 @@ window.addEventListener('keydown', (e) => {
         if (currentPuzzleLine) {
             renderPuzzle(currentPuzzleLine);
         }
+    } else if (key === 'h') {
+        hintButton.click();
     }
 });
 
