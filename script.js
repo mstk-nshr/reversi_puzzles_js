@@ -4442,7 +4442,7 @@ let lastMove = null;
 let showHints = false;
 let cachedHints = {};
 let puzzleStartPlayer = 'X';
-let isCPUEnabled = false;
+let isCPUEnabled = true;
 let isCPUThinking = false;
 let modalCallback = null;
 
@@ -4681,9 +4681,10 @@ function handleCellClick(r, c) {
             const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
             
             const userWon = (puzzleStartPlayer === 'X' ? counts.blackCount > counts.whiteCount : counts.whiteCount > counts.blackCount);
-            msgArea.textContent = (userWon ? '正解！ ' : '失敗... ') + resultMsg;
+            // msgArea.textContent = (userWon ? '正解！ ' : '失敗... ') + resultMsg;
+            msgArea.textContent = resultMsg;
             if (turnArrow) {
-                turnArrow.textContent = '──';
+                turnArrow.textContent = userWon ? '　正解！　' : '　失敗！　';  // '──';
                 turnArrow.style.textAlign = 'center';
             }
         }
@@ -4733,7 +4734,7 @@ function executeCPUMove() {
     setTimeout(() => {
         isCPUThinking = false;
         handleCellClick(bestMove.r, bestMove.c);
-    }, 2000);
+    }, 1000);
 }
 
 function getWinnerMessage(black, white) {

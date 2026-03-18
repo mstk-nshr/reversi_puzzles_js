@@ -221,8 +221,15 @@ main {
     border: 1px solid var(--glass-border);
 }
 
+.count-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
 .player-label {
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--text-main);
     background: rgba(255, 255, 255, 0.1);
@@ -412,6 +419,17 @@ main {
 
 .btn-primary:active, .btn-secondary:active {
     transform: translateY(0);
+}
+
+.score-number {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
 footer {
