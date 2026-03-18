@@ -4423,7 +4423,8 @@ const boardElement = document.getElementById('board');
 const nextButton = document.getElementById('next-button');
 const resetButton = document.getElementById('reset-button');
 const hintButton = document.getElementById('hint-button');
-const turnDisplay = document.getElementById('current-player');
+const turnArrow = document.getElementById('turn-arrow');
+const turnDisplay = document.getElementById('next-turn-msg');
 const puzzleInfo = document.getElementById('puzzle-info');
 const modalOverlay = document.getElementById('modal-overlay');
 const modalTitle = document.getElementById('modal-title');
@@ -4441,6 +4442,8 @@ let lastMove = null;
 let showHints = false;
 let cachedHints = {};
 let puzzleStartPlayer = 'X';
+let isCPUEnabled = false;
+let isCPUThinking = false;
 let modalCallback = null;
 
 function init() {
@@ -4495,6 +4498,26 @@ function init() {
     });
     
     applyFilter();
+    const blackLabel = document.getElementById('black-label');
+    const whiteLabel = document.getElementById('white-label');
+
+    const toggleCPU = (e) => {
+        const span = e.target;
+        if (span.textContent === 'You') return; // Cannot turn "You" into CPU
+        
+        if (span.textContent === 'CPU') {
+            span.textContent = '---';
+            isCPUEnabled = false;
+        } else {
+            span.textContent = 'CPU';
+            isCPUEnabled = true;
+            checkCPUTurn();
+        }
+    };
+
+    blackLabel.addEventListener('click', toggleCPU);
+    whiteLabel.addEventListener('click', toggleCPU);
+
     loadRandomPuzzle();
 }
 
@@ -4533,10 +4556,21 @@ function renderPuzzle(line) {
     const boardStateStr = parts[0];
     currentPlayer = parts[1];
     puzzleStartPlayer = parts[1];
+    isCPUThinking = false;
+
+    // Update player labels
+    const blackLabel = document.getElementById('black-label');
+    const whiteLabel = document.getElementById('white-label');
+    if (puzzleStartPlayer === 'X') {
+        blackLabel.textContent = 'You';
+        whiteLabel.textContent = isCPUEnabled ? 'CPU' : '---';
+    } else {
+        blackLabel.textContent = isCPUEnabled ? 'CPU' : '---';
+        whiteLabel.textContent = 'You';
+    }
 
     // Reset turn message
-    document.getElementById('next-turn-msg').textContent = '次の手番:';
-    document.getElementById('current-player').style.display = 'block';
+    document.getElementById('next-turn-msg').textContent = '';
 
     currentBoard = [];
     for (let r = 0; r < 8; r++) {
@@ -4544,6 +4578,7 @@ function renderPuzzle(line) {
     }
 
     updateUI();
+    checkCPUTurn();
 }
 
 function updateUI() {
@@ -4595,7 +4630,18 @@ function updateUI() {
 
     document.getElementById('black-count').textContent = blackCount;
     document.getElementById('white-count').textContent = whiteCount;
-    turnDisplay.className = `player-indicator ${currentPlayer === 'X' ? 'black' : 'white'}`;
+    
+    // Update turn arrow
+    if (turnArrow) {
+        if (currentPlayer === 'X') {
+            // turnArrow.textContent = '◀─ next turn     ';
+            turnArrow.textContent = '◀─ next turn　';
+            turnArrow.style.textAlign = 'left';
+        } else {
+            turnArrow.textContent = '　next turn ─▶';
+            turnArrow.style.textAlign = 'right';
+        }
+    }
     
     if (currentPuzzleIndex !== -1 && puzzles[currentPuzzleIndex]) {
         const p = puzzles[currentPuzzleIndex];
@@ -4607,6 +4653,7 @@ function updateUI() {
 }
 
 function handleCellClick(r, c) {
+    if (isCPUThinking) return;
     const flipList = isValidMove(r, c, currentPlayer);
     if (flipList.length === 0) return;
 
@@ -4623,22 +4670,70 @@ function handleCellClick(r, c) {
     
     if (hasValidMove(nextPlayer)) {
         currentPlayer = nextPlayer;
-        msgArea.textContent = '次の手番:';
+        msgArea.textContent = '';
         updateUI();
     } else {
         if (hasValidMove(currentPlayer)) {
             updateUI();
-            msgArea.textContent = `${nextPlayer === 'X' ? '黒' : '白'}番がパスしました。次の手番:`;
+            msgArea.textContent = `${nextPlayer === 'X' ? '黒' : '白'}番がパスしました。`;
         } else {
             const counts = updateUI();
             const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
             
             const userWon = (puzzleStartPlayer === 'X' ? counts.blackCount > counts.whiteCount : counts.whiteCount > counts.blackCount);
             msgArea.textContent = (userWon ? '正解！ ' : '失敗... ') + resultMsg;
-            
-            document.getElementById('current-player').style.display = 'none';
+            if (turnArrow) {
+                turnArrow.textContent = '──';
+                turnArrow.style.textAlign = 'center';
+            }
         }
     }
+    checkCPUTurn();
+}
+
+function checkCPUTurn() {
+    if (!isCPUEnabled || isCPUThinking) return;
+    
+    // CPU plays as the non-starting player
+    const cpuColor = (puzzleStartPlayer === 'X' ? 'O' : 'X');
+    if (currentPlayer === cpuColor) {
+        executeCPUMove();
+    }
+}
+
+function executeCPUMove() {
+    const moves = getValidMoves(currentBoard, currentPlayer);
+    if (moves.length === 0) return;
+
+    isCPUThinking = true;
+
+    // Use simulateGame to find the best move (minimax)
+    let bestMove = moves[0];
+    let bestValue = (currentPlayer === 'X' ? -100 : 100);
+
+    for (const move of moves) {
+        const nextBoard = currentBoard.map(row => [...row]);
+        nextBoard[move.r][move.c] = currentPlayer;
+        move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = currentPlayer);
+        
+        const value = simulateGame(nextBoard, currentPlayer === 'X' ? 'O' : 'X');
+        if (currentPlayer === 'X') {
+            if (value > bestValue) {
+                bestValue = value;
+                bestMove = move;
+            }
+        } else {
+            if (value < bestValue) {
+                bestValue = value;
+                bestMove = move;
+            }
+        }
+    }
+
+    setTimeout(() => {
+        isCPUThinking = false;
+        handleCellClick(bestMove.r, bestMove.c);
+    }, 2000);
 }
 
 function getWinnerMessage(black, white) {

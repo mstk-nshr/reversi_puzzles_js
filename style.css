@@ -221,12 +221,33 @@ main {
     border: 1px solid var(--glass-border);
 }
 
+.player-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.player-label:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.turn-arrow {
+    font-weight: 800;
+    color: #facc15; /* Yellow (Tailwind yellow-400) */
+    padding: 0 0.5rem;
+    min-width: 50px;
+    font-family: monospace;
+    font-size: 1.4rem;
+    display: inline-block;
+}
+
 .player-indicator {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.1);
+    display: none;
 }
 
 .player-indicator.black {
