@@ -128,7 +128,7 @@ function loadRandomPuzzle() {
 function renderPuzzle(line) {
     currentPuzzleLine = line;
     lastMove = null;
-    showHints = false;
+    // showHints = false; // Persistent hints
     cachedHints = {};
     const parts = line.split(' ').filter(p => p.length > 0);
     if (parts.length < 2) return;
@@ -157,6 +157,7 @@ function renderPuzzle(line) {
         currentBoard[r] = boardStateStr.substring(r * 8, (r + 1) * 8).split('');
     }
 
+    if (showHints) calculateHints();
     updateUI();
     checkCPUTurn();
 }
@@ -238,7 +239,7 @@ function handleCellClick(r, c) {
     if (flipList.length === 0) return;
 
     lastMove = { r, c };
-    showHints = false;
+    // showHints = false; // Persistent hints
     cachedHints = {};
     currentBoard[r][c] = currentPlayer;
     flipList.forEach(([fr, fc]) => {
@@ -251,14 +252,17 @@ function handleCellClick(r, c) {
     if (hasValidMove(nextPlayer)) {
         currentPlayer = nextPlayer;
         msgArea.textContent = '';
+        if (showHints) calculateHints();
         updateUI();
     } else {
         if (hasValidMove(currentPlayer)) {
+            if (showHints) calculateHints();
             updateUI();
             msgArea.textContent = `${nextPlayer === 'X' ? '黒' : '白'}番がパスしました。`;
         } else {
             const counts = updateUI();
             const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
+            // showHints = false; // Persistent hints: don't turn off at game end
             
             const userWon = (puzzleStartPlayer === 'X' ? counts.blackCount > counts.whiteCount : counts.whiteCount > counts.blackCount);
             // msgArea.textContent = (userWon ? '正解！ ' : '失敗... ') + resultMsg;
