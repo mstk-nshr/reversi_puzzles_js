@@ -1,6 +1,7 @@
 :root {
     --bg-color: #0f172a;
-    --card-bg: rgba(30, 41, 59, 0.7);
+    /* --card-bg: rgba(30, 41, 59, 0.7); */
+    --card-bg: rgba(24, 46, 80, 0.7);
     --primary-color: #10b981;
     --primary-hover: #059669;
     --bg-dark: #020617;
@@ -178,6 +179,9 @@ main {
 }
 
 .stone.black {
+    /* background: radial-gradient(circle at 30% 30%, #475569 0%, #020617 70%); */ /* Sharper highlight */
+    /* border: 1px solid rgba(255, 255, 255, 0.2); */ /* Defined edge */
+    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1); */ /* Crisp shadow */
     background: radial-gradient(circle at 30% 30%, #475569, var(--black-stone));
 }
 
@@ -211,6 +215,20 @@ main {
     align-items: center;
 }
 
+.stone-counts {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.player-info-group {
+    /* Inherits from .control-panel */
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1.25rem !important; /* Slightly more compact padding */
+}
+
 .control-panel {
     display: flex;
     align-items: center;
@@ -226,6 +244,11 @@ main {
     flex-direction: column;
     align-items: center;
     gap: 0.25rem;
+}
+
+.count-item .stone {
+    width: 30px;
+    height: 30px;
 }
 
 .player-label {
