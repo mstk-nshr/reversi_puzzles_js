@@ -178,6 +178,24 @@ main {
     color: #020617;
 }
 
+.stone {
+    position: relative;
+}
+
+.stone.last-move::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 25%;
+    height: 25%;
+    background-color: #ef4444;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(239, 68, 68, 0.8);
+    z-index: 10;
+}
+
 .controls {
     display: flex;
     flex-direction: column;

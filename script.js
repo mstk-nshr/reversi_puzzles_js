@@ -4436,6 +4436,7 @@ let currentBoard = [];
 let currentPlayer = 'X';
 let currentPuzzleLine = '';
 let currentPuzzleIndex = -1;
+let lastMove = null;
 let modalCallback = null;
 
 function init() {
@@ -4519,6 +4520,7 @@ function loadRandomPuzzle() {
 
 function renderPuzzle(line) {
     currentPuzzleLine = line;
+    lastMove = null;
     const parts = line.split(' ').filter(p => p.length > 0);
     if (parts.length < 2) return;
 
@@ -4552,12 +4554,18 @@ function updateUI() {
                 blackCount++;
                 const stone = document.createElement('div');
                 stone.className = 'stone black';
+                if (lastMove && lastMove.r === r && lastMove.c === c) {
+                    stone.classList.add('last-move');
+                }
                 stone.textContent = '';
                 cell.appendChild(stone);
             } else if (char === 'O') {
                 whiteCount++;
                 const stone = document.createElement('div');
                 stone.className = 'stone white';
+                if (lastMove && lastMove.r === r && lastMove.c === c) {
+                    stone.classList.add('last-move');
+                }
                 stone.textContent = '';
                 cell.appendChild(stone);
             } else {
@@ -4588,6 +4596,7 @@ function handleCellClick(r, c) {
     const flipList = isValidMove(r, c, currentPlayer);
     if (flipList.length === 0) return;
 
+    lastMove = { r, c };
     currentBoard[r][c] = currentPlayer;
     flipList.forEach(([fr, fc]) => {
         currentBoard[fr][fc] = currentPlayer;
