@@ -227,6 +227,7 @@ main {
     align-items: center;
     gap: 1rem;
     padding: 0.5rem 1.25rem !important; /* Slightly more compact padding */
+    border-radius: 12px !important; /* Smaller rounded corners */
 }
 
 .control-panel {
