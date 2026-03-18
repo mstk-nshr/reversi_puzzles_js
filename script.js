@@ -4440,6 +4440,7 @@ let currentPuzzleIndex = -1;
 let lastMove = null;
 let showHints = false;
 let cachedHints = {};
+let puzzleStartPlayer = 'X';
 let modalCallback = null;
 
 function init() {
@@ -4531,6 +4532,7 @@ function renderPuzzle(line) {
 
     const boardStateStr = parts[0];
     currentPlayer = parts[1];
+    puzzleStartPlayer = parts[1];
 
     // Reset turn message
     document.getElementById('next-turn-msg').textContent = '次の手番:';
@@ -4630,7 +4632,10 @@ function handleCellClick(r, c) {
         } else {
             const counts = updateUI();
             const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
-            msgArea.textContent = resultMsg;
+            
+            const userWon = (puzzleStartPlayer === 'X' ? counts.blackCount > counts.whiteCount : counts.whiteCount > counts.blackCount);
+            msgArea.textContent = (userWon ? '正解！ ' : '失敗... ') + resultMsg;
+            
             document.getElementById('current-player').style.display = 'none';
         }
     }
