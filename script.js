@@ -212,6 +212,11 @@ function updateUI() {
     document.getElementById('black-count').textContent = blackCount;
     document.getElementById('white-count').textContent = whiteCount;
     
+    // Update hint button active state
+    if (hintButton) {
+        hintButton.classList.toggle('active', showHints);
+    }
+    
     // Update turn arrow
     if (turnArrow) {
         if (currentPlayer === 'X') {
@@ -318,7 +323,7 @@ function executeCPUMove() {
     setTimeout(() => {
         isCPUThinking = false;
         handleCellClick(bestMove.r, bestMove.c);
-    }, 1000);
+    }, showHints ? 2000 : 1000);
 }
 
 function getWinnerMessage(black, white) {

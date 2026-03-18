@@ -436,6 +436,13 @@ main {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+#hint-button.active {
+    background: var(--primary-color);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: white;
+}
+
 .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
