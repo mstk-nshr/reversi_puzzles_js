@@ -29,4 +29,4 @@ Simply open `index.html` in any modern web browser to start solving puzzles.
 
 ## License
 
-&copy; 2026 MN Puzzle Lab
+MIT License
