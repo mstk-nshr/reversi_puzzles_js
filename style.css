@@ -240,6 +240,14 @@ main {
     border: 1px solid var(--glass-border);
 }
 
+#turn-display {
+    font-size: 1.2rem;
+    color: #facc15; /* Yellow (Tailwind yellow-400) */
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+}
+
 .count-item {
     display: flex;
     flex-direction: column;
