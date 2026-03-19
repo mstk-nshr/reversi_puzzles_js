@@ -77,6 +77,22 @@ function init()
         loadRandomPuzzle();
     });
 
+    const filterHeader = document.getElementById('filter-header');
+    const filterContent = document.getElementById('filter-content');
+    const closeFilterBtn = document.getElementById('close-filter-btn');
+
+    if (filterHeader && filterContent && closeFilterBtn) {
+        filterHeader.addEventListener('click', () => {
+            filterContent.classList.remove('hidden');
+            filterHeader.classList.add('hidden');
+        });
+
+        closeFilterBtn.addEventListener('click', () => {
+            filterContent.classList.add('hidden');
+            filterHeader.classList.remove('hidden');
+        });
+    }
+
     modalOkBtn.addEventListener('click', () =>
     {
         modalOverlay.classList.add('hidden');

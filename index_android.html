@@ -341,6 +341,33 @@ main {
     width: 100%;
 }
 
+.filter-header {
+    cursor: pointer;
+    text-align: center;
+    font-weight: bold;
+    color: var(--text-muted);
+    transition: color 0.2s;
+    user-select: none;
+}
+
+.filter-header:hover {
+    color: var(--text-main);
+}
+
+.filter-header.hidden {
+    display: none;
+}
+
+.filter-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-content.hidden {
+    display: none;
+}
+
 .filter-section {
     display: flex;
     flex-direction: column;
@@ -493,29 +520,38 @@ footer {
     <div class="container">
         <header>
             <h1>Reversi Puzzle</h1>
-            <div class="filter-panel control-panel consolidated">
-                <div class="filter-section horizontal">
-                    <span>手番絞り込み:</span>
-                    <div class="radio-group">
-                        <label><input type="radio" name="turn" value="all" checked> 全て</label>
-                        <label><input type="radio" name="turn" value="X"> 黒番</label>
-                        <label><input type="radio" name="turn" value="O"> 白番</label>
-                    </div>
+            <div class="filter-panel control-panel consolidated" id="filter-panel">
+                <div id="filter-header" class="filter-header">
+                    <span>▼ Filter</span>
                 </div>
-                <div class="filter-divider"></div>
-                <div class="filter-section">
-                    <div class="empty-cells-header">
-                        <span>空きマス数:</span>
-                        <button id="select-all-empty" class="btn-text">全選択</button>
+                <div id="filter-content" class="filter-content hidden">
+                    <div class="filter-section horizontal">
+                        <span>手番絞り込み:</span>
+                        <div class="radio-group">
+                            <label><input type="radio" name="turn" value="all" checked> 全て</label>
+                            <label><input type="radio" name="turn" value="X"> 黒番</label>
+                            <label><input type="radio" name="turn" value="O"> 白番</label>
+                        </div>
                     </div>
-                    <div class="checkbox-group">
-                        <label><input type="checkbox" class="empty-check" value="2" checked> 2</label>
-                        <label><input type="checkbox" class="empty-check" value="3" checked> 3</label>
-                        <label><input type="checkbox" class="empty-check" value="4" checked> 4</label>
-                        <label><input type="checkbox" class="empty-check" value="5" checked> 5</label>
-                        <label><input type="checkbox" class="empty-check" value="6"> 6</label>
-                        <label><input type="checkbox" class="empty-check" value="7"> 7</label>
-                        <label><input type="checkbox" class="empty-check" value="8"> 8</label>
+                    <div class="filter-divider"></div>
+                    <div class="filter-section">
+                        <div class="empty-cells-header">
+                            <span>空きマス数:</span>
+                            <button id="select-all-empty" class="btn-text">全選択</button>
+                        </div>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" class="empty-check" value="2"> 2</label>
+                            <label><input type="checkbox" class="empty-check" value="3" checked> 3</label>
+                            <label><input type="checkbox" class="empty-check" value="4" checked> 4</label>
+                            <label><input type="checkbox" class="empty-check" value="5" checked> 5</label>
+                            <label><input type="checkbox" class="empty-check" value="6"> 6</label>
+                            <label><input type="checkbox" class="empty-check" value="7"> 7</label>
+                            <label><input type="checkbox" class="empty-check" value="8"> 8</label>
+                        </div>
+                    </div>
+                    <div class="filter-divider"></div>
+                    <div class="filter-actions" style="text-align: right; margin-top: 0.25rem;">
+                        <button id="close-filter-btn" class="btn-text">▲ 折りたたむ</button>
                     </div>
                 </div>
             </div>
@@ -5072,6 +5108,22 @@ function init()
         applyFilter();
         loadRandomPuzzle();
     });
+
+    const filterHeader = document.getElementById('filter-header');
+    const filterContent = document.getElementById('filter-content');
+    const closeFilterBtn = document.getElementById('close-filter-btn');
+
+    if (filterHeader && filterContent && closeFilterBtn) {
+        filterHeader.addEventListener('click', () => {
+            filterContent.classList.remove('hidden');
+            filterHeader.classList.add('hidden');
+        });
+
+        closeFilterBtn.addEventListener('click', () => {
+            filterContent.classList.add('hidden');
+            filterHeader.classList.remove('hidden');
+        });
+    }
 
     modalOkBtn.addEventListener('click', () =>
     {

@@ -334,6 +334,33 @@ main {
     width: 100%;
 }
 
+.filter-header {
+    cursor: pointer;
+    text-align: center;
+    font-weight: bold;
+    color: var(--text-muted);
+    transition: color 0.2s;
+    user-select: none;
+}
+
+.filter-header:hover {
+    color: var(--text-main);
+}
+
+.filter-header.hidden {
+    display: none;
+}
+
+.filter-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-content.hidden {
+    display: none;
+}
+
 .filter-section {
     display: flex;
     flex-direction: column;
