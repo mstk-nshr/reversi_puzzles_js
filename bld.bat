@@ -1,0 +1,2 @@
+node build_android_html.js
+pause
