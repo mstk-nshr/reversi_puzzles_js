@@ -18,6 +18,7 @@ let currentBoard = [];
 let currentPlayer = 'X';
 let currentPuzzleLine = '';
 let currentPuzzleIndex = -1;
+let absolutePuzzleIndex = -1;
 let lastMove = null;
 let showHints = false;
 let cachedHints = {};
@@ -25,6 +26,7 @@ let puzzleStartPlayer = 'X';
 let isBotEnabled = true;
 let isBotThinking = false;
 let modalCallback = null;
+let moveHistory = []; // stack of { board, player, lastMove }
 
 function init()
 {
@@ -93,6 +95,9 @@ function init()
         });
     }
 
+    const undoButton = document.getElementById('undo-button');
+    if (undoButton) undoButton.addEventListener('click', undoLastMove);
+
     modalOkBtn.addEventListener('click', () =>
     {
         modalOverlay.classList.add('hidden');
@@ -143,6 +148,14 @@ function applyFilter()
         return turnMatch && emptyMatch;
     });
 
+    // Update filter header to show selected count
+    const filterHeader = document.getElementById('filter-header');
+    if (filterHeader)
+    {
+        const span = filterHeader.querySelector('span');
+        if (span) span.textContent = `▼ Filter (全${allPuzzles.length}問中 ${puzzles.length}問)`;
+    }
+
     if (puzzles.length === 0)
     {
         puzzleInfo.textContent = '条件に合うパズルがありません。';
@@ -154,6 +167,7 @@ function loadRandomPuzzle()
     if (puzzles.length === 0) return;
     const randomIndex = Math.floor(Math.random() * puzzles.length);
     currentPuzzleIndex = randomIndex;
+    absolutePuzzleIndex = allPuzzles.indexOf(puzzles[randomIndex]);
     const puzzleData = puzzles[randomIndex].line;
     renderPuzzle(puzzleData);
 }
@@ -162,6 +176,7 @@ function renderPuzzle(line)
 {
     currentPuzzleLine = line;
     lastMove = null;
+    moveHistory = []; // clear undo history on new puzzle
     // showHints = false; // Persistent hints
     cachedHints = {};
     const parts = line.split(' ').filter(p => p.length > 0);
@@ -285,7 +300,8 @@ function updateUI()
     {
         const p = puzzles[currentPuzzleIndex];
         const turnText = p.turn === 'X' ? '黒番' : '白番';
-        puzzleInfo.textContent = `第 ${currentPuzzleIndex + 1} / ${puzzles.length} 問：${turnText}、${p.emptyCells} マス問題です`;
+        // puzzleInfo.textContent = `第 ${absolutePuzzleIndex + 1} / ${allPuzzles.length} 問：${turnText}、${p.emptyCells} マス問題です`;
+        puzzleInfo.textContent = `第 ${absolutePuzzleIndex + 1} 問：　${turnText}、${p.emptyCells} マス問題`;
     }
 
     return { blackCount, whiteCount };
@@ -296,6 +312,13 @@ function handleCellClick(r, c)
     if (isBotThinking) return;
     const flipList = isValidMove(r, c, currentPlayer);
     if (flipList.length === 0) return;
+
+    // Save state for undo
+    moveHistory.push({
+        board: currentBoard.map(row => [...row]),
+        player: currentPlayer,
+        lastMove: lastMove ? { ...lastMove } : null
+    });
 
     lastMove = { r, c };
     // showHints = false; // Persistent hints
@@ -421,6 +444,22 @@ function showModal(title, message, callback)
     modalOverlay.classList.remove('hidden');
     modalCallback = callback;
 }
+
+function undoLastMove()
+{
+    if (isBotThinking || moveHistory.length === 0) return;
+    const snapshot = moveHistory.pop();
+    currentBoard = snapshot.board;
+    currentPlayer = snapshot.player;
+    lastMove = snapshot.lastMove;
+    cachedHints = {};
+    const msgArea = document.getElementById('next-turn-msg');
+    if (msgArea) msgArea.textContent = '　';
+    if (turnArrow) turnArrow.textContent = '';
+    if (showHints) calculateHints();
+    updateUI();
+}
+
 
 function isValidMove(r, c, color)
 {
@@ -589,6 +628,9 @@ window.addEventListener('keydown', (e) =>
     } else if (key === 'h')
     {
         hintButton.click();
+    } else if (key === 'u')
+    {
+        undoLastMove();
     }
 });
 
