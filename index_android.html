@@ -86,7 +86,7 @@ body {
     max-width: 600px;
     width: 90%;
     text-align: center;
-    padding: 2rem;
+    padding: 1rem;
     background: var(--card-bg);
     backdrop-filter: blur(12px);
     border: 1px solid var(--glass-border);
@@ -101,8 +101,10 @@ body {
 }
 
 header h1 {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0;
     background: linear-gradient(to right, #34d399, #10b981);
     -webkit-background-clip: text;
     background-clip: text;
@@ -263,12 +265,12 @@ main {
 }
 
 .count-item .stone {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
 }
 
 .player-label {
-    font-size: 1.2rem;
+    font-size: 1.0rem;
     font-weight: 700;
     color: var(--text-main);
     background: rgba(255, 255, 255, 0.1);
@@ -501,7 +503,7 @@ main {
 }
 
 .score-number {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--text-main);
     background: rgba(255, 255, 255, 0.1);
@@ -5324,13 +5326,13 @@ function updateUI()
     {
         if (currentPlayer === 'X')
         {
-            // turnArrow.textContent = '◀─ next turn     ';
-            turnArrow.textContent = '⬅ next turn　';
+            // turnArrow.textContent = '⬅ next turn　';
+            turnArrow.textContent = '⬅　　　　';
             turnArrow.style.textAlign = 'left';
         } else
         {
-            // turnArrow.textContent = '　next turn ─▶';
-            turnArrow.textContent = '　next turn ➡';
+            // turnArrow.textContent = '　next turn ➡';
+            turnArrow.textContent = '　　　　➡';
             turnArrow.style.textAlign = 'right';
         }
     }

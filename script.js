@@ -285,13 +285,13 @@ function updateUI()
     {
         if (currentPlayer === 'X')
         {
-            // turnArrow.textContent = '◀─ next turn     ';
-            turnArrow.textContent = '⬅ next turn　';
+            // turnArrow.textContent = '⬅ next turn　';
+            turnArrow.textContent = '⬅　　　　';
             turnArrow.style.textAlign = 'left';
         } else
         {
-            // turnArrow.textContent = '　next turn ─▶';
-            turnArrow.textContent = '　next turn ➡';
+            // turnArrow.textContent = '　next turn ➡';
+            turnArrow.textContent = '　　　　➡';
             turnArrow.style.textAlign = 'right';
         }
     }
