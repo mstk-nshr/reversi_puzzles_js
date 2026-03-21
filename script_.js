@@ -104,6 +104,7 @@ let isBotEnabled = true;
 let isBotThinking = false;
 let modalCallback = null;
 let moveHistory = []; // stack of { board, player, lastMove }
+let suppressRecord = false; // reset/undo 使用時は直後の保存を抑制する
 
 function init()
 {
@@ -441,14 +442,23 @@ function handleCellClick(r, c)
             // ヒント使用時は保存しない。Botを使っているとき（isBotEnabled が true）のみ記録する
             if (!showHints && isBotEnabled) {
                 try {
-                    // 表示している問題番号と合わせるため1始まりで保存する
-                    const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex + 1) : currentPuzzleLine;
-                    if (typeof window.recordPuzzleResult === 'function') {
-                        window.recordPuzzleResult(puzzleId, !!userWon);
+                    if (!suppressRecord) {
+                        // 表示している問題番号と合わせるため1始まりで保存する
+                        const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex + 1) : currentPuzzleLine;
+                        if (typeof window.recordPuzzleResult === 'function') {
+                            window.recordPuzzleResult(puzzleId, !!userWon);
+                        }
+                    } else {
+                        // 一度抑制したらクリアする
+                        suppressRecord = false;
                     }
                 } catch (e) {
                     console.error('recordPuzzleResult error', e);
+                    suppressRecord = false;
                 }
+            } else {
+                // ヒント使用やBot無効のケースでも抑制フラグはクリアしておく
+                suppressRecord = false;
             }
         }
     }
@@ -539,6 +549,8 @@ function showModal(title, message, callback)
 function undoLastMove()
 {
     if (isBotThinking || moveHistory.length === 0) return;
+    // 「戻る」操作なので直近の結果保存を抑制する
+    suppressRecord = true;
     const snapshot = moveHistory.pop();
     currentBoard = snapshot.board;
     currentPlayer = snapshot.player;
@@ -550,155 +562,6 @@ function undoLastMove()
     if (showHints) calculateHints();
     updateUI();
 }
-
-
-function isValidMove(r, c, color)
-{
-    if (currentBoard[r][c] !== '-') return [];
-
-    const opponent = (color === 'X' ? 'O' : 'X');
-    const directions = [
-        [-1, -1], [-1, 0], [-1, 1],
-        [0, -1], [0, 1],
-        [1, -1], [1, 0], [1, 1]
-    ];
-
-    let allFlips = [];
-
-    for (const [dr, dc] of directions)
-    {
-        let currentFlips = [];
-        let tr = r + dr;
-        let tc = c + dc;
-
-        while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && currentBoard[tr][tc] === opponent)
-        {
-            currentFlips.push([tr, tc]);
-            tr += dr;
-            tc += dc;
-        }
-
-        if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && currentBoard[tr][tc] === color && currentFlips.length > 0)
-        {
-            allFlips = allFlips.concat(currentFlips);
-        }
-    }
-
-    return allFlips;
-}
-
-function getValidMoves(board, color)
-{
-    const moves = [];
-    for (let r = 0; r < 8; r++)
-    {
-        for (let c = 0; c < 8; c++)
-        {
-            const flips = isValidMoveOnBoard(board, r, c, color);
-            if (flips.length > 0) moves.push({ r, c, flips });
-        }
-    }
-    return moves;
-}
-
-function isValidMoveOnBoard(board, r, c, color)
-{
-    if (board[r][c] !== '-') return [];
-    const opponent = (color === 'X' ? 'O' : 'X');
-    const directions = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
-    let allFlips = [];
-    for (const [dr, dc] of directions)
-    {
-        let currentFlips = [];
-        let tr = r + dr, tc = c + dc;
-        while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && board[tr][tc] === opponent)
-        {
-            currentFlips.push([tr, tc]);
-            tr += dr; tc += dc;
-        }
-        if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && board[tr][tc] === color && currentFlips.length > 0)
-        {
-            allFlips = allFlips.concat(currentFlips);
-        }
-    }
-    return allFlips;
-}
-
-function simulateGame(board, player)
-{
-    const moves = getValidMoves(board, player);
-    if (moves.length === 0)
-    {
-        const nextPlayer = (player === 'X' ? 'O' : 'X');
-        if (getValidMoves(board, nextPlayer).length === 0)
-        {
-            let black = 0, white = 0;
-            for (let r = 0; r < 8; r++)
-            {
-                for (let c = 0; c < 8; c++)
-                {
-                    if (board[r][c] === 'X') black++;
-                    else if (board[r][c] === 'O') white++;
-                }
-            }
-            return black - white;
-        }
-        return simulateGame(board, nextPlayer);
-    }
-
-    let bestValue = (player === 'X' ? -100 : 100);
-    for (const move of moves)
-    {
-        const nextBoard = board.map(row => [...row]);
-        nextBoard[move.r][move.c] = player;
-        move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = player);
-
-        const value = simulateGame(nextBoard, player === 'X' ? 'O' : 'X');
-        if (player === 'X')
-        {
-            bestValue = Math.max(bestValue, value);
-        } else
-        {
-            bestValue = Math.min(bestValue, value);
-        }
-    }
-    return bestValue;
-}
-
-function calculateHints()
-{
-    const moves = getValidMoves(currentBoard, currentPlayer);
-    cachedHints = {};
-    for (const move of moves)
-    {
-        const nextBoard = currentBoard.map(row => [...row]);
-        nextBoard[move.r][move.c] = currentPlayer;
-        move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = currentPlayer);
-        cachedHints[`${move.r}-${move.c}`] = simulateGame(nextBoard, currentPlayer === 'X' ? 'O' : 'X');
-    }
-}
-
-nextButton.addEventListener('click', loadRandomPuzzle);
-resetButton.addEventListener('click', () =>
-{
-    if (currentPuzzleLine)
-    {
-        renderPuzzle(currentPuzzleLine);
-    }
-});
-
-hintButton.addEventListener('click', () =>
-{
-    if (showHints)
-    {
-        showHints = false;
-    } else
-    {
-        calculateHints();
-        showHints = true;
-    }
-    updateUI();
-});
 
 // Add keyboard shortcuts
 window.addEventListener('keydown', (e) =>
@@ -714,6 +577,8 @@ window.addEventListener('keydown', (e) =>
     {
         if (currentPuzzleLine)
         {
+            // キーボード操作によるリセットも抑制対象にする
+            suppressRecord = true;
             renderPuzzle(currentPuzzleLine);
         }
     } else if (key === 'h')
