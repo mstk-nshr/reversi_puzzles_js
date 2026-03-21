@@ -523,3 +523,11 @@ footer {
     font-size: 0.75rem;
     color: var(--text-dim);
 }
+
+.modal .primary-button,
+#modal-ok-btn {
+    min-width: 80px;      /* 横幅を広くする */
+    padding: 0.5rem 1rem;  /* 上下の余白を増やす（縦方向のパディング） */
+    border-radius: 10px;
+    font-weight: 700;
+}

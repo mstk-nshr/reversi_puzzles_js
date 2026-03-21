@@ -1,3 +1,80 @@
+// データベース設定
+const DB_NAME = 'reversi_puzzles_stats';
+const DB_VERSION = 1;
+const STORE_NAME = 'results';
+
+function openDb() {
+	return new Promise((resolve, reject) => {
+		const req = indexedDB.open(DB_NAME, DB_VERSION);
+		req.onupgradeneeded = (ev) => {
+			const db = ev.target.result;
+			if (!db.objectStoreNames.contains(STORE_NAME)) {
+				const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+				store.createIndex('puzzleId', 'puzzleId', { unique: false });
+				store.createIndex('outcome', 'outcome', { unique: false });
+			}
+		};
+		req.onsuccess = () => resolve(req.result);
+		req.onerror = () => reject(req.error);
+	});
+}
+
+async function recordResult(puzzleId, outcome) {
+	const db = await openDb();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE_NAME, 'readwrite');
+		const store = tx.objectStore(STORE_NAME);
+		const rec = { puzzleId: String(puzzleId), outcome: outcome, ts: Date.now() };
+		const r = store.add(rec);
+		r.onsuccess = () => resolve(r.result);
+		r.onerror = () => reject(r.error);
+	});
+}
+
+async function getAllRecords() {
+	const db = await openDb();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE_NAME, 'readonly');
+		const store = tx.objectStore(STORE_NAME);
+		const req = store.getAll();
+		req.onsuccess = () => resolve(req.result);
+		req.onerror = () => reject(req.error);
+	});
+}
+
+async function getStats() {
+	const all = await getAllRecords();
+	const map = {};
+	all.forEach(r => {
+		const id = r.puzzleId || 'unknown';
+		if (!map[id]) map[id] = { puzzleId: id, success: 0, fail: 0, total: 0 };
+		if (r.outcome === 'success') map[id].success++;
+		else map[id].fail++;
+		map[id].total++;
+	});
+	return Object.values(map).sort((a,b) => b.total - a.total);
+}
+
+async function clearResults() {
+	const db = await openDb();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE_NAME, 'readwrite');
+		const store = tx.objectStore(STORE_NAME);
+		const req = store.clear();
+		req.onsuccess = () => resolve();
+		req.onerror = () => reject(req.error);
+	});
+}
+
+// 公開
+window.db = {
+	recordResult,
+	getAllRecords,
+	getStats,
+	clearResults
+};
+
+
 const BOARD_SIZE = 8;
 const boardElement = document.getElementById('board');
 const nextButton = document.getElementById('next-button');
@@ -359,6 +436,16 @@ function handleCellClick(r, c)
                 turnArrow.textContent = userWon ? '　正解！　' : '　失敗！　';  // '──';
                 turnArrow.style.textAlign = 'center';
             }
+
+            // 結果を記録（puzzleId は絶対インデックスがあればそれを使う）
+            try {
+                const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex) : currentPuzzleLine;
+                if (typeof window.recordPuzzleResult === 'function') {
+                    window.recordPuzzleResult(puzzleId, !!userWon);
+                }
+            } catch (e) {
+                console.error('recordPuzzleResult error', e);
+            }
         }
     }
     checkBotTurn();
@@ -634,4 +721,66 @@ window.addEventListener('keydown', (e) =>
     }
 });
 
-init();
+// 初期化
+document.addEventListener('DOMContentLoaded', () => {
+    // db 初期化（open を一度呼ぶ）
+    if (window.db && typeof window.db.getStats === 'function') {
+        // no-op; db.js self-handles open on demand
+    }
+
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    const modalOk = document.getElementById('modal-ok-btn');
+    const clearStatsBtn = document.getElementById('clear-stats-btn');
+    const statsBtn = document.getElementById('stats-button');
+
+    function openModal(title, html, showClear = false) {
+        modalTitle.textContent = title;
+        modalMessage.innerHTML = html;
+        clearStatsBtn.style.display = showClear ? 'inline-block' : 'none';
+        modalOverlay.classList.remove('hidden');
+    }
+    function closeModal() {
+        modalOverlay.classList.add('hidden');
+    }
+
+    modalOk.addEventListener('click', closeModal);
+
+    statsBtn.addEventListener('click', async () => {
+        if (!window.db) return;
+        const stats = await window.db.getStats();
+        if (stats.length === 0) {
+            openModal('統計', '<p>記録がありません。</p>', false);
+            return;
+        }
+        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">問題ID</th><th>成功</th><th>失敗</th><th>合計</th></tr>';
+        stats.forEach(s => {
+            html += `<tr><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td><td style="text-align:center">${s.total}</td></tr>`;
+        });
+        html += '</table>';
+        openModal('統計', html, true);
+    });
+
+    clearStatsBtn.addEventListener('click', async () => {
+        if (!confirm('記録を全て消去します。よろしいですか？')) return;
+        await window.db.clearResults();
+        openModal('統計', '<p>記録を消去しました。</p>', false);
+    });
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // 外部から結果を記録するためのユーティリティ
+    window.recordPuzzleResult = async function(puzzleId, success) {
+        if (!window.db) return;
+        try {
+            await window.db.recordResult(puzzleId, success ? 'success' : 'fail');
+        } catch (e) {
+            console.error('recordPuzzleResult error', e);
+        }
+    };
+
+    init();
+});
