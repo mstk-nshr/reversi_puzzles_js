@@ -222,7 +222,9 @@ main {
 .stone-counts {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 0.5rem;
+
+    width: 100%;
 }
 
 .player-info-group {
@@ -232,6 +234,7 @@ main {
     gap: 0.5rem;
     padding: 0.3rem 0.75rem !important;
     border-radius: 12px !important;
+    white-space: nowrap;
 }
 
 .control-panel {
@@ -247,9 +250,12 @@ main {
 #turn-display {
     font-size: 1.2rem;
     color: #facc15; /* Yellow (Tailwind yellow-400) */
-    background: transparent;
+    /* background: transparent; */
+    background: rgba(255, 255, 255, 0.589);
     border: none;
     padding: 0.5rem;
+    /* flex: 1; */
+    display: none;
 }
 
 .count-item {
@@ -287,6 +293,10 @@ main {
     font-family: monospace;
     font-size: 1.2rem;
     display: inline-block;
+    width: 100%;
+    vertical-align: middle;
+    white-space: nowrap;
+    flex: 1;
 }
 
 .player-indicator {
