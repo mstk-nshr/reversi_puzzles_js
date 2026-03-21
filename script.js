@@ -104,6 +104,7 @@ let isBotEnabled = true;
 let isBotThinking = false;
 let modalCallback = null;
 let moveHistory = []; // stack of { board, player, lastMove }
+let suppressRecord = false; // reset/undo 使用時は直後の保存を抑制する
 
 function init()
 {
@@ -441,15 +442,25 @@ function handleCellClick(r, c)
             // ヒント使用時は保存しない。Botを使っているとき（isBotEnabled が true）のみ記録する
             if (!showHints && isBotEnabled) {
                 try {
-                    // 表示している問題番号と合わせるため1始まりで保存する
-                    const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex + 1) : currentPuzzleLine;
-                    if (typeof window.recordPuzzleResult === 'function') {
-                        window.recordPuzzleResult(puzzleId, !!userWon);
+                    if (!suppressRecord) {
+                        // 表示している問題番号と合わせるため1始まりで保存する
+                        const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex + 1) : currentPuzzleLine;
+                        if (typeof window.recordPuzzleResult === 'function') {
+                            window.recordPuzzleResult(puzzleId, !!userWon);
+                        }
+                    } else {
+                        // 一度抑制したらクリアする
+                        suppressRecord = false;
                     }
                 } catch (e) {
                     console.error('recordPuzzleResult error', e);
+                    suppressRecord = false;
                 }
+            } else {
+                // ヒント使用やBot無効のケースでも抑制フラグはクリアしておく
+                suppressRecord = false;
             }
+
         }
     }
     checkBotTurn();
@@ -539,6 +550,8 @@ function showModal(title, message, callback)
 function undoLastMove()
 {
     if (isBotThinking || moveHistory.length === 0) return;
+    // 「戻る」操作なので直近の結果保存を抑制する
+    suppressRecord = true;
     const snapshot = moveHistory.pop();
     currentBoard = snapshot.board;
     currentPlayer = snapshot.player;
@@ -683,6 +696,8 @@ resetButton.addEventListener('click', () =>
 {
     if (currentPuzzleLine)
     {
+        // 「始めからやり直す」操作なので直近の結果保存を抑制する
+        suppressRecord = true;
         renderPuzzle(currentPuzzleLine);
     }
 });
@@ -714,6 +729,8 @@ window.addEventListener('keydown', (e) =>
     {
         if (currentPuzzleLine)
         {
+            // キーボード操作によるリセットも抑制対象にする
+            suppressRecord = true;
             renderPuzzle(currentPuzzleLine);
         }
     } else if (key === 'h')
