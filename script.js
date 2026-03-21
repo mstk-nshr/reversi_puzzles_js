@@ -777,12 +777,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">問題ID</th><th>成功</th><th>失敗</th><th>合計</th></tr>';
         stats.forEach(s => {
-            html += `<tr><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td><td style="text-align:center">${s.total}</td></tr>`;
+            html += `<tr data-pid="${escapeHtml(s.puzzleId)}" style="cursor:pointer"><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td><td style="text-align:center">${s.total}</td></tr>`;
         });
         html += '</table>';
         openModal('統計', html, true);
-    });
 
+        // テーブル行をクリックすると該当問題を表示
+        // setTimeout で DOM 挿入後に query する
+        setTimeout(() => {
+            const rows = modalMessage.querySelectorAll('tr[data-pid]');
+            rows.forEach(row => {
+                row.addEventListener('click', () => {
+                    const pid = row.getAttribute('data-pid');
+                    closeModal();
+                    loadPuzzleById(pid);
+                });
+            });
+        }, 0);
+    });
+ 
+
+    // 問題ID から該当問題を表示する（保存時は 1 始まりで保存している想定）
+    function loadPuzzleById(puzzleId) {
+        if (!puzzleId) return;
+        // 数字の場合は 1始まり -> 0始まりに変換
+        if (/^\d+$/.test(puzzleId)) {
+            const absIndex = parseInt(puzzleId, 10) - 1;
+            if (absIndex >= 0 && absIndex < allPuzzles.length) {
+                absolutePuzzleIndex = absIndex;
+                // フィルタ済み配列内のインデックスを設定（存在しない場合は -1）
+                currentPuzzleIndex = puzzles.indexOf(allPuzzles[absIndex]);
+                renderPuzzle(allPuzzles[absIndex].line);
+                return;
+            }
+        }
+        // 数字でない、または範囲外の場合は全件から line に一致する項目を探す
+        const found = allPuzzles.findIndex(p => p.puzzleId === puzzleId || p.line.includes(puzzleId));
+        if (found !== -1) {
+            absolutePuzzleIndex = found;
+            currentPuzzleIndex = puzzles.indexOf(allPuzzles[found]);
+            renderPuzzle(allPuzzles[found].line);
+            return;
+        }
+        openModal('エラー', '<p>該当する問題が見つかりませんでした。</p>', false);
+    }
+    
     clearStatsBtn.addEventListener('click', async () => {
         if (!confirm('記録を全て消去します。よろしいですか？')) return;
         await window.db.clearResults();
