@@ -531,6 +531,14 @@ footer {
     color: var(--text-dim);
 }
 
+.modal .primary-button,
+#modal-ok-btn {
+    min-width: 80px;      /* 横幅を広くする */
+    padding: 0.5rem 1rem;  /* 上下の余白を増やす（縦方向のパディング） */
+    border-radius: 10px;
+    font-weight: 700;
+}
+
 </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -613,6 +621,7 @@ footer {
                 <button id="reset-button" class="btn-secondary" title="始めからやり直す (R)">&#x21BB;</button>
                 <button id="undo-button" class="btn-secondary" title="１手戻る (U)">&#x21A9;</button>
                 <button id="next-button" class="btn-primary" title="別の問題 (N)">&#x23ED;</button>
+                <button id="stats-button" class="btn-secondary" title="統計">📊</button>
             </div>
         </main>
 
@@ -623,13 +632,17 @@ footer {
     <div id="modal-overlay" class="modal-overlay hidden">
         <div class="modal">
             <h2 id="modal-title">Notification</h2>
-            <p id="modal-message"></p>
-            <button id="modal-ok-btn" class="primary-button">OK</button>
+            <div id="modal-message"></div>
+            <div id="modal-actions" style="margin-top:0.75rem; text-align:right;">
+                <button id="clear-stats-btn" class="btn-text" style="display:none;">記録を消去</button>
+                <button id="modal-ok-btn" class="primary-button">OK</button>
+            </div>
         </div>
     </div>
 
     <script>
-﻿const DB_DATA = `# 2 cells
+﻿
+const DB_DATA = `# 2 cells
 --XOOOOXXXXXXXXXXXOXOXOXXOXOXOOXXOXXOXOXXOXOOOOXXOOOXOOXXOOOOOOO O
 OXOOOO--OOOOOOOOOOOXXXOXOOXXXOOXOXXXXXOXOXOXXOXXOXXOOOXXOXXXXXXX X
 XXXX-O-OXXOOXXOOXOXXXOOOXOOXOOXXXOXOOOXXXXOXXOXXXOXOOXXXOOOOOOOO X
@@ -5051,6 +5064,83 @@ XOOOOOO-X-OOOO--XOXOOOXXXOXOOXO-XOOXXXXOXOOXXXXOX-XXXXXO-XXXXXX- X
 
 </script>
     <script>
+// データベース設定
+const DB_NAME = 'reversi_puzzles_stats';
+const DB_VERSION = 1;
+const STORE_NAME = 'results';
+
+function openDb() {
+	return new Promise((resolve, reject) => {
+		const req = indexedDB.open(DB_NAME, DB_VERSION);
+		req.onupgradeneeded = (ev) => {
+			const db = ev.target.result;
+			if (!db.objectStoreNames.contains(STORE_NAME)) {
+				const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+				store.createIndex('puzzleId', 'puzzleId', { unique: false });
+				store.createIndex('outcome', 'outcome', { unique: false });
+			}
+		};
+		req.onsuccess = () => resolve(req.result);
+		req.onerror = () => reject(req.error);
+	});
+}
+
+async function recordResult(puzzleId, outcome) {
+	const db = await openDb();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE_NAME, 'readwrite');
+		const store = tx.objectStore(STORE_NAME);
+		const rec = { puzzleId: String(puzzleId), outcome: outcome, ts: Date.now() };
+		const r = store.add(rec);
+		r.onsuccess = () => resolve(r.result);
+		r.onerror = () => reject(r.error);
+	});
+}
+
+async function getAllRecords() {
+	const db = await openDb();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE_NAME, 'readonly');
+		const store = tx.objectStore(STORE_NAME);
+		const req = store.getAll();
+		req.onsuccess = () => resolve(req.result);
+		req.onerror = () => reject(req.error);
+	});
+}
+
+async function getStats() {
+	const all = await getAllRecords();
+	const map = {};
+	all.forEach(r => {
+		const id = r.puzzleId || 'unknown';
+		if (!map[id]) map[id] = { puzzleId: id, success: 0, fail: 0, total: 0 };
+		if (r.outcome === 'success') map[id].success++;
+		else map[id].fail++;
+		map[id].total++;
+	});
+	return Object.values(map).sort((a,b) => b.total - a.total);
+}
+
+async function clearResults() {
+	const db = await openDb();
+	return new Promise((resolve, reject) => {
+		const tx = db.transaction(STORE_NAME, 'readwrite');
+		const store = tx.objectStore(STORE_NAME);
+		const req = store.clear();
+		req.onsuccess = () => resolve();
+		req.onerror = () => reject(req.error);
+	});
+}
+
+// 公開
+window.db = {
+	recordResult,
+	getAllRecords,
+	getStats,
+	clearResults
+};
+
+
 const BOARD_SIZE = 8;
 const boardElement = document.getElementById('board');
 const nextButton = document.getElementById('next-button');
@@ -5080,6 +5170,7 @@ let isBotEnabled = true;
 let isBotThinking = false;
 let modalCallback = null;
 let moveHistory = []; // stack of { board, player, lastMove }
+let suppressRecord = false; // reset/undo 使用時は直後の保存を抑制する
 
 function init()
 {
@@ -5412,6 +5503,30 @@ function handleCellClick(r, c)
                 turnArrow.textContent = userWon ? '　正解！　' : '　失敗！　';  // '──';
                 turnArrow.style.textAlign = 'center';
             }
+
+            // 結果を記録（puzzleId は絶対インデックスがあればそれを使う）
+            // ヒント使用時は保存しない。Botを使っているとき（isBotEnabled が true）のみ記録する
+            if (!showHints && isBotEnabled) {
+                try {
+                    if (!suppressRecord) {
+                        // 表示している問題番号と合わせるため1始まりで保存する
+                        const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex + 1) : currentPuzzleLine;
+                        if (typeof window.recordPuzzleResult === 'function') {
+                            window.recordPuzzleResult(puzzleId, !!userWon);
+                        }
+                    } else {
+                        // 一度抑制したらクリアする
+                        suppressRecord = false;
+                    }
+                } catch (e) {
+                    console.error('recordPuzzleResult error', e);
+                    suppressRecord = false;
+                }
+            } else {
+                // ヒント使用やBot無効のケースでも抑制フラグはクリアしておく
+                suppressRecord = false;
+            }
+
         }
     }
     checkBotTurn();
@@ -5501,6 +5616,8 @@ function showModal(title, message, callback)
 function undoLastMove()
 {
     if (isBotThinking || moveHistory.length === 0) return;
+    // 「戻る」操作なので直近の結果保存を抑制する
+    suppressRecord = true;
     const snapshot = moveHistory.pop();
     currentBoard = snapshot.board;
     currentPlayer = snapshot.player;
@@ -5645,6 +5762,8 @@ resetButton.addEventListener('click', () =>
 {
     if (currentPuzzleLine)
     {
+        // 「始めからやり直す」操作なので直近の結果保存を抑制する
+        suppressRecord = true;
         renderPuzzle(currentPuzzleLine);
     }
 });
@@ -5676,6 +5795,8 @@ window.addEventListener('keydown', (e) =>
     {
         if (currentPuzzleLine)
         {
+            // キーボード操作によるリセットも抑制対象にする
+            suppressRecord = true;
             renderPuzzle(currentPuzzleLine);
         }
     } else if (key === 'h')
@@ -5687,7 +5808,108 @@ window.addEventListener('keydown', (e) =>
     }
 });
 
-init();
+// 初期化
+document.addEventListener('DOMContentLoaded', () => {
+    // db 初期化（open を一度呼ぶ）
+    if (window.db && typeof window.db.getStats === 'function') {
+        // no-op; db.js self-handles open on demand
+    }
+
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalTitle = document.getElementById('modal-title');
+    const modalMessage = document.getElementById('modal-message');
+    const modalOk = document.getElementById('modal-ok-btn');
+    const clearStatsBtn = document.getElementById('clear-stats-btn');
+    const statsBtn = document.getElementById('stats-button');
+
+    function openModal(title, html, showClear = false) {
+        modalTitle.textContent = title;
+        modalMessage.innerHTML = html;
+        clearStatsBtn.style.display = showClear ? 'inline-block' : 'none';
+        modalOverlay.classList.remove('hidden');
+    }
+    function closeModal() {
+        modalOverlay.classList.add('hidden');
+    }
+
+    modalOk.addEventListener('click', closeModal);
+
+    statsBtn.addEventListener('click', async () => {
+        if (!window.db) return;
+        const stats = await window.db.getStats();
+        if (stats.length === 0) {
+            openModal('統計', '<p>記録がありません。</p>', false);
+            return;
+        }
+        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">問題ID</th><th>成功</th><th>失敗</th><th>合計</th></tr>';
+        stats.forEach(s => {
+            html += `<tr data-pid="${escapeHtml(s.puzzleId)}" style="cursor:pointer"><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td><td style="text-align:center">${s.total}</td></tr>`;
+        });
+        html += '</table>';
+        openModal('統計', html, true);
+
+        // テーブル行をクリックすると該当問題を表示
+        // setTimeout で DOM 挿入後に query する
+        setTimeout(() => {
+            const rows = modalMessage.querySelectorAll('tr[data-pid]');
+            rows.forEach(row => {
+                row.addEventListener('click', () => {
+                    const pid = row.getAttribute('data-pid');
+                    closeModal();
+                    loadPuzzleById(pid);
+                });
+            });
+        }, 0);
+    });
+ 
+
+    // 問題ID から該当問題を表示する（保存時は 1 始まりで保存している想定）
+    function loadPuzzleById(puzzleId) {
+        if (!puzzleId) return;
+        // 数字の場合は 1始まり -> 0始まりに変換
+        if (/^\d+$/.test(puzzleId)) {
+            const absIndex = parseInt(puzzleId, 10) - 1;
+            if (absIndex >= 0 && absIndex < allPuzzles.length) {
+                absolutePuzzleIndex = absIndex;
+                // フィルタ済み配列内のインデックスを設定（存在しない場合は -1）
+                currentPuzzleIndex = puzzles.indexOf(allPuzzles[absIndex]);
+                renderPuzzle(allPuzzles[absIndex].line);
+                return;
+            }
+        }
+        // 数字でない、または範囲外の場合は全件から line に一致する項目を探す
+        const found = allPuzzles.findIndex(p => p.puzzleId === puzzleId || p.line.includes(puzzleId));
+        if (found !== -1) {
+            absolutePuzzleIndex = found;
+            currentPuzzleIndex = puzzles.indexOf(allPuzzles[found]);
+            renderPuzzle(allPuzzles[found].line);
+            return;
+        }
+        openModal('エラー', '<p>該当する問題が見つかりませんでした。</p>', false);
+    }
+    
+    clearStatsBtn.addEventListener('click', async () => {
+        if (!confirm('記録を全て消去します。よろしいですか？')) return;
+        await window.db.clearResults();
+        openModal('統計', '<p>記録を消去しました。</p>', false);
+    });
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // 外部から結果を記録するためのユーティリティ
+    window.recordPuzzleResult = async function(puzzleId, success) {
+        if (!window.db) return;
+        try {
+            await window.db.recordResult(puzzleId, success ? 'success' : 'fail');
+        } catch (e) {
+            console.error('recordPuzzleResult error', e);
+        }
+    };
+
+    init();
+});
 
 </script>
 </body>
