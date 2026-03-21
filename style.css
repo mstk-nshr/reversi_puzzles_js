@@ -107,8 +107,10 @@ header h1 {
 
 #puzzle-info {
     color: var(--text-dim);
-    font-size: 0.9rem;
+    font-size: 1.2rem;
     margin: 0;
+    text-align: center;
+    width: 100%;
 }
 
 .info-action-bar {
