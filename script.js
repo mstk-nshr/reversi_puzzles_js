@@ -427,8 +427,10 @@ function handleCellClick(r, c)
             msgArea.textContent = 'pass😧';
             if (turnArrow) { turnArrow.textContent = '　pass😧　'; turnArrow.style.textAlign = 'center'; }
         } else {
-            msgArea.textContent = 'pass👍';
-            if (turnArrow) { turnArrow.textContent = '　pass👍　'; turnArrow.style.textAlign = 'center'; }
+            msgArea.textContent = '連打👍';
+            if (turnArrow) { turnArrow.textContent = '　連打👍　'; turnArrow.style.textAlign = 'center'; }
+            // msgArea.textContent = 'pass👍';
+            // if (turnArrow) { turnArrow.textContent = '　pass👍　'; turnArrow.style.textAlign = 'center'; }
         }
 
         setTimeout(() => {
