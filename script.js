@@ -733,6 +733,9 @@ window.addEventListener('keydown', (e) =>
     if (key === 'n')
     {
         loadRandomPuzzle();
+    } else if (key === 's') {
+        const sb = document.getElementById('stats-button');
+        if (sb) sb.click();
     } else if (key === 'r')
     {
         if (currentPuzzleLine)
@@ -747,6 +750,9 @@ window.addEventListener('keydown', (e) =>
     } else if (key === 'u')
     {
         undoLastMove();
+    // } else if (key === 's')
+    // {
+    //     statsBtn.click();
     }
 });
 
@@ -762,12 +768,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalMessage = document.getElementById('modal-message');
     const modalOk = document.getElementById('modal-ok-btn');
     const clearStatsBtn = document.getElementById('clear-stats-btn');
+    const clearZeroFailBtn = document.getElementById('clear-zero-fail-btn');
     const statsBtn = document.getElementById('stats-button');
 
     function openModal(title, html, showClear = false) {
         modalTitle.textContent = title;
         modalMessage.innerHTML = html;
         clearStatsBtn.style.display = showClear ? 'inline-block' : 'none';
+        if (clearZeroFailBtn) clearZeroFailBtn.style.display = showClear ? 'inline-block' : 'none';
         modalOverlay.classList.remove('hidden');
     }
     function closeModal() {
@@ -852,6 +860,55 @@ document.addEventListener('DOMContentLoaded', () => {
         await window.db.clearResults();
         openModal('統計', '<p>記録を消去しました。</p>', false);
     });
+
+    if (clearZeroFailBtn) {
+        clearZeroFailBtn.addEventListener('click', async () => {
+            if (!confirm('失敗が0の記録を全て削除します。よろしいですか？')) return;
+            // gather stats and find puzzleIds with fail === 0
+            const stats = await window.db.getStats();
+            const idsToDelete = stats.filter(s => s.fail === 0).map(s => s.puzzleId);
+            if (idsToDelete.length === 0) {
+                openModal('統計', '<p>該当する記録はありませんでした。</p>', false);
+                return;
+            }
+            try {
+                await deleteRecordsForPuzzleIds(idsToDelete);
+                // reopen stats to refresh view
+                statsBtn.click();
+            } catch (e) {
+                console.error('clearZeroFail error', e);
+                openModal('エラー', '<p>削除中にエラーが発生しました。</p>', false);
+            }
+        });
+    }
+
+    // Delete all records matching any of given puzzleId values
+    async function deleteRecordsForPuzzleIds(ids) {
+        if (!Array.isArray(ids) || ids.length === 0) return;
+        const db = await openDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const idx = store.index('puzzleId');
+            let remaining = ids.length;
+            ids.forEach(id => {
+                const req = idx.openCursor(IDBKeyRange.only(String(id)));
+                req.onsuccess = (ev) => {
+                    const cursor = ev.target.result;
+                    if (cursor) {
+                        cursor.delete();
+                        cursor.continue();
+                    } else {
+                        remaining--;
+                        if (remaining === 0) resolve();
+                    }
+                };
+                req.onerror = (ev) => {
+                    reject(req.error || ev.target.error);
+                };
+            });
+        });
+    }
 
     function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
