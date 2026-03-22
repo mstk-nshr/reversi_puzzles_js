@@ -722,6 +722,14 @@ window.addEventListener('keydown', (e) =>
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
     const key = e.key.toLowerCase();
+    // ESC closes modal if open
+    if (key === 'escape') {
+        const modal = document.getElementById('modal-overlay');
+        if (modal && !modal.classList.contains('hidden')) {
+            modal.classList.add('hidden');
+            return;
+        }
+    }
     if (key === 'n')
     {
         loadRandomPuzzle();
@@ -775,9 +783,26 @@ document.addEventListener('DOMContentLoaded', () => {
             openModal('統計', '<p>記録がありません。</p>', false);
             return;
         }
-        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">問題ID</th><th>成功</th><th>失敗</th><th>合計</th></tr>';
+        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">問題ID</th><th>タイプ</th><th>成功</th><th>失敗</th></tr>';
         stats.forEach(s => {
-            html += `<tr data-pid="${escapeHtml(s.puzzleId)}" style="cursor:pointer"><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td><td style="text-align:center">${s.total}</td></tr>`;
+            // Determine type (例: "2W" のように空きマス数 + 色)
+            let typeVal = '';
+            try {
+                if (/^\d+$/.test(s.puzzleId)) {
+                    const absIndex = parseInt(s.puzzleId, 10) - 1;
+                    if (absIndex >= 0 && absIndex < allPuzzles.length) {
+                        const p = allPuzzles[absIndex];
+                        typeVal = `${p.emptyCells}${p.turn === 'X' ? 'B' : 'W'}`;
+                    }
+                } else {
+                    const found = allPuzzles.find(p => p.line && p.line.includes(s.puzzleId));
+                    if (found) typeVal = `${found.emptyCells}${found.turn === 'X' ? 'B' : 'W'}`;
+                }
+            } catch (e) {
+                typeVal = '';
+            }
+
+            html += `<tr data-pid="${escapeHtml(s.puzzleId)}" style="cursor:pointer"><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${escapeHtml(typeVal)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td></tr>`;
         });
         html += '</table>';
         openModal('統計', html, true);
