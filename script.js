@@ -399,70 +399,74 @@ function handleCellClick(r, c)
     });
 
     lastMove = { r, c };
-    // showHints = false; // Persistent hints
     cachedHints = {};
     currentBoard[r][c] = currentPlayer;
-    flipList.forEach(([fr, fc]) =>
-    {
-        currentBoard[fr][fc] = currentPlayer;
-    });
+    flipList.forEach(([fr, fc]) => { currentBoard[fr][fc] = currentPlayer; });
 
     const nextPlayer = (currentPlayer === 'X' ? 'O' : 'X');
     const msgArea = document.getElementById('next-turn-msg');
 
-    if (hasValidMove(nextPlayer))
-    {
+    // Normal turn switch
+    if (hasValidMove(nextPlayer)) {
         currentPlayer = nextPlayer;
         msgArea.textContent = '　';
         if (showHints) calculateHints();
         updateUI();
-    } else
-    {
-        if (hasValidMove(currentPlayer))
-        {
-            if (showHints) calculateHints();
-            updateUI();
-            msgArea.textContent = `${nextPlayer === 'X' ? '黒' : '白'}番がパスしました。`;
-        } else
-        {
-            const counts = updateUI();
-            const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
-            // showHints = false; // Persistent hints: don't turn off at game end
+        checkBotTurn();
+        return;
+    }
 
-            const userWon = (puzzleStartPlayer === 'X' ? counts.blackCount > counts.whiteCount : counts.whiteCount > counts.blackCount);
-            // msgArea.textContent = (userWon ? '正解！ ' : '失敗... ') + resultMsg;
-            msgArea.textContent = resultMsg;
-            if (turnArrow)
-            {
-                turnArrow.textContent = userWon ? '　正解！　' : '　失敗！　';  // '──';
-                turnArrow.style.textAlign = 'center';
-            }
+    // nextPlayer must pass but current player has moves
+    if (hasValidMove(currentPlayer)) {
+        // First update the board to reflect the move
+        if (showHints) calculateHints();
+        updateUI();
 
-            // 結果を記録（puzzleId は絶対インデックスがあればそれを使う）
-            // ヒント使用時は保存しない。Botを使っているとき（isBotEnabled が true）のみ記録する
-            if (!showHints && isBotEnabled) {
-                try {
-                    if (!suppressRecord) {
-                        // 表示している問題番号と合わせるため1始まりで保存する
-                        const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex + 1) : currentPuzzleLine;
-                        if (typeof window.recordPuzzleResult === 'function') {
-                            window.recordPuzzleResult(puzzleId, !!userWon);
-                        }
-                    } else {
-                        // 一度抑制したらクリアする
-                        suppressRecord = false;
-                    }
-                } catch (e) {
-                    console.error('recordPuzzleResult error', e);
-                    suppressRecord = false;
+        const isYou = (nextPlayer === puzzleStartPlayer);
+        if (isYou) {
+            msgArea.textContent = 'pass😧';
+            if (turnArrow) { turnArrow.textContent = '　pass😧　'; turnArrow.style.textAlign = 'center'; }
+        } else {
+            msgArea.textContent = 'pass👍';
+            if (turnArrow) { turnArrow.textContent = '　pass👍　'; turnArrow.style.textAlign = 'center'; }
+        }
+
+        setTimeout(() => {
+            msgArea.textContent = '　';
+            // After resolving the pass, allow bot to act if it's their turn
+            checkBotTurn();
+        }, 2000);
+        return;
+    }
+
+    // Game over
+    const counts = updateUI();
+    const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
+    const userWon = (puzzleStartPlayer === 'X' ? counts.blackCount > counts.whiteCount : counts.whiteCount > counts.blackCount);
+    msgArea.textContent = resultMsg;
+    if (turnArrow) {
+        turnArrow.textContent = userWon ? '　正解！　' : '　失敗！　';
+        turnArrow.style.textAlign = 'center';
+    }
+
+    if (!showHints && isBotEnabled) {
+        try {
+            if (!suppressRecord) {
+                const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex + 1) : currentPuzzleLine;
+                if (typeof window.recordPuzzleResult === 'function') {
+                    window.recordPuzzleResult(puzzleId, !!userWon);
                 }
             } else {
-                // ヒント使用やBot無効のケースでも抑制フラグはクリアしておく
                 suppressRecord = false;
             }
-
+        } catch (e) {
+            console.error('recordPuzzleResult error', e);
+            suppressRecord = false;
         }
+    } else {
+        suppressRecord = false;
     }
+
     checkBotTurn();
 }
 
@@ -924,5 +928,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    init();
+    try {
+        init();
+    } catch (e) {
+        console.error('init error', e);
+        if (puzzleInfo) puzzleInfo.textContent = '起動時エラー: ' + (e && e.message ? e.message : String(e));
+    }
+
+    // Show global errors in the UI to help debugging
+    window.addEventListener('error', (ev) => {
+        console.error('Unhandled error', ev.error || ev.message);
+        if (puzzleInfo) puzzleInfo.textContent = 'エラー: ' + (ev.error && ev.error.message ? ev.error.message : ev.message || String(ev));
+    });
 });
