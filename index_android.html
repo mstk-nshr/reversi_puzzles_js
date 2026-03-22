@@ -621,7 +621,7 @@ footer {
                 <button id="reset-button" class="btn-secondary" title="始めからやり直す (R)">&#x21BB;</button>
                 <button id="undo-button" class="btn-secondary" title="１手戻る (U)">&#x21A9;</button>
                 <button id="next-button" class="btn-primary" title="別の問題 (N)">&#x23ED;</button>
-                <button id="stats-button" class="btn-secondary" title="統計">📊</button>
+                <button id="stats-button" class="btn-secondary" title="統計 (S)">📊</button>
             </div>
         </main>
 
@@ -634,7 +634,8 @@ footer {
             <h2 id="modal-title">Notification</h2>
             <div id="modal-message"></div>
             <div id="modal-actions" style="margin-top:0.75rem; text-align:right;">
-                <button id="clear-stats-btn" class="btn-text" style="display:none;">記録を消去</button>
+                <button id="clear-stats-btn" class="btn-text" style="display:none;">全ての記録を消去</button>
+                <button id="clear-zero-fail-btn" class="btn-text" style="display:none;">失敗0を消去</button>
                 <button id="modal-ok-btn" class="primary-button">OK</button>
             </div>
         </div>
@@ -5465,70 +5466,76 @@ function handleCellClick(r, c)
     });
 
     lastMove = { r, c };
-    // showHints = false; // Persistent hints
     cachedHints = {};
     currentBoard[r][c] = currentPlayer;
-    flipList.forEach(([fr, fc]) =>
-    {
-        currentBoard[fr][fc] = currentPlayer;
-    });
+    flipList.forEach(([fr, fc]) => { currentBoard[fr][fc] = currentPlayer; });
 
     const nextPlayer = (currentPlayer === 'X' ? 'O' : 'X');
     const msgArea = document.getElementById('next-turn-msg');
 
-    if (hasValidMove(nextPlayer))
-    {
+    // Normal turn switch
+    if (hasValidMove(nextPlayer)) {
         currentPlayer = nextPlayer;
         msgArea.textContent = '　';
         if (showHints) calculateHints();
         updateUI();
-    } else
-    {
-        if (hasValidMove(currentPlayer))
-        {
-            if (showHints) calculateHints();
-            updateUI();
-            msgArea.textContent = `${nextPlayer === 'X' ? '黒' : '白'}番がパスしました。`;
-        } else
-        {
-            const counts = updateUI();
-            const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
-            // showHints = false; // Persistent hints: don't turn off at game end
+        checkBotTurn();
+        return;
+    }
 
-            const userWon = (puzzleStartPlayer === 'X' ? counts.blackCount > counts.whiteCount : counts.whiteCount > counts.blackCount);
-            // msgArea.textContent = (userWon ? '正解！ ' : '失敗... ') + resultMsg;
-            msgArea.textContent = resultMsg;
-            if (turnArrow)
-            {
-                turnArrow.textContent = userWon ? '　正解！　' : '　失敗！　';  // '──';
-                turnArrow.style.textAlign = 'center';
-            }
+    // nextPlayer must pass but current player has moves
+    if (hasValidMove(currentPlayer)) {
+        // First update the board to reflect the move
+        if (showHints) calculateHints();
+        updateUI();
 
-            // 結果を記録（puzzleId は絶対インデックスがあればそれを使う）
-            // ヒント使用時は保存しない。Botを使っているとき（isBotEnabled が true）のみ記録する
-            if (!showHints && isBotEnabled) {
-                try {
-                    if (!suppressRecord) {
-                        // 表示している問題番号と合わせるため1始まりで保存する
-                        const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex + 1) : currentPuzzleLine;
-                        if (typeof window.recordPuzzleResult === 'function') {
-                            window.recordPuzzleResult(puzzleId, !!userWon);
-                        }
-                    } else {
-                        // 一度抑制したらクリアする
-                        suppressRecord = false;
-                    }
-                } catch (e) {
-                    console.error('recordPuzzleResult error', e);
-                    suppressRecord = false;
+        const isYou = (nextPlayer === puzzleStartPlayer);
+        if (isYou) {
+            msgArea.textContent = 'pass😧';
+            if (turnArrow) { turnArrow.textContent = '　pass😧　'; turnArrow.style.textAlign = 'center'; }
+        } else {
+            msgArea.textContent = '連打👍';
+            if (turnArrow) { turnArrow.textContent = '　連打👍　'; turnArrow.style.textAlign = 'center'; }
+            // msgArea.textContent = 'pass👍';
+            // if (turnArrow) { turnArrow.textContent = '　pass👍　'; turnArrow.style.textAlign = 'center'; }
+        }
+
+        setTimeout(() => {
+            msgArea.textContent = '　';
+            // After resolving the pass, allow bot to act if it's their turn
+            checkBotTurn();
+        }, 2000);
+        return;
+    }
+
+    // Game over
+    const counts = updateUI();
+    const resultMsg = getWinnerMessage(counts.blackCount, counts.whiteCount);
+    const userWon = (puzzleStartPlayer === 'X' ? counts.blackCount > counts.whiteCount : counts.whiteCount > counts.blackCount);
+    msgArea.textContent = resultMsg;
+    if (turnArrow) {
+        turnArrow.textContent = userWon ? '　正解！　' : '　失敗！　';
+        turnArrow.style.textAlign = 'center';
+    }
+
+    if (!showHints && isBotEnabled) {
+        try {
+            if (!suppressRecord) {
+                const puzzleId = (absolutePuzzleIndex !== -1) ? String(absolutePuzzleIndex + 1) : currentPuzzleLine;
+                if (typeof window.recordPuzzleResult === 'function') {
+                    window.recordPuzzleResult(puzzleId, !!userWon);
                 }
             } else {
-                // ヒント使用やBot無効のケースでも抑制フラグはクリアしておく
                 suppressRecord = false;
             }
-
+        } catch (e) {
+            console.error('recordPuzzleResult error', e);
+            suppressRecord = false;
         }
+    } else {
+        suppressRecord = false;
     }
+
     checkBotTurn();
 }
 
@@ -5788,9 +5795,20 @@ window.addEventListener('keydown', (e) =>
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
     const key = e.key.toLowerCase();
+    // ESC closes modal if open
+    if (key === 'escape') {
+        const modal = document.getElementById('modal-overlay');
+        if (modal && !modal.classList.contains('hidden')) {
+            modal.classList.add('hidden');
+            return;
+        }
+    }
     if (key === 'n')
     {
         loadRandomPuzzle();
+    } else if (key === 's') {
+        const sb = document.getElementById('stats-button');
+        if (sb) sb.click();
     } else if (key === 'r')
     {
         if (currentPuzzleLine)
@@ -5805,6 +5823,9 @@ window.addEventListener('keydown', (e) =>
     } else if (key === 'u')
     {
         undoLastMove();
+    // } else if (key === 's')
+    // {
+    //     statsBtn.click();
     }
 });
 
@@ -5820,12 +5841,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalMessage = document.getElementById('modal-message');
     const modalOk = document.getElementById('modal-ok-btn');
     const clearStatsBtn = document.getElementById('clear-stats-btn');
+    const clearZeroFailBtn = document.getElementById('clear-zero-fail-btn');
     const statsBtn = document.getElementById('stats-button');
 
     function openModal(title, html, showClear = false) {
         modalTitle.textContent = title;
         modalMessage.innerHTML = html;
         clearStatsBtn.style.display = showClear ? 'inline-block' : 'none';
+        if (clearZeroFailBtn) clearZeroFailBtn.style.display = showClear ? 'inline-block' : 'none';
         modalOverlay.classList.remove('hidden');
     }
     function closeModal() {
@@ -5841,9 +5864,26 @@ document.addEventListener('DOMContentLoaded', () => {
             openModal('統計', '<p>記録がありません。</p>', false);
             return;
         }
-        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">問題ID</th><th>成功</th><th>失敗</th><th>合計</th></tr>';
+        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">問題ID</th><th>タイプ</th><th>成功</th><th>失敗</th></tr>';
         stats.forEach(s => {
-            html += `<tr data-pid="${escapeHtml(s.puzzleId)}" style="cursor:pointer"><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td><td style="text-align:center">${s.total}</td></tr>`;
+            // Determine type (例: "2W" のように空きマス数 + 色)
+            let typeVal = '';
+            try {
+                if (/^\d+$/.test(s.puzzleId)) {
+                    const absIndex = parseInt(s.puzzleId, 10) - 1;
+                    if (absIndex >= 0 && absIndex < allPuzzles.length) {
+                        const p = allPuzzles[absIndex];
+                        typeVal = `${p.emptyCells}${p.turn === 'X' ? 'B' : 'W'}`;
+                    }
+                } else {
+                    const found = allPuzzles.find(p => p.line && p.line.includes(s.puzzleId));
+                    if (found) typeVal = `${found.emptyCells}${found.turn === 'X' ? 'B' : 'W'}`;
+                }
+            } catch (e) {
+                typeVal = '';
+            }
+
+            html += `<tr data-pid="${escapeHtml(s.puzzleId)}" style="cursor:pointer"><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${escapeHtml(typeVal)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td></tr>`;
         });
         html += '</table>';
         openModal('統計', html, true);
@@ -5894,6 +5934,55 @@ document.addEventListener('DOMContentLoaded', () => {
         openModal('統計', '<p>記録を消去しました。</p>', false);
     });
 
+    if (clearZeroFailBtn) {
+        clearZeroFailBtn.addEventListener('click', async () => {
+            if (!confirm('失敗が0の記録を全て削除します。よろしいですか？')) return;
+            // gather stats and find puzzleIds with fail === 0
+            const stats = await window.db.getStats();
+            const idsToDelete = stats.filter(s => s.fail === 0).map(s => s.puzzleId);
+            if (idsToDelete.length === 0) {
+                openModal('統計', '<p>該当する記録はありませんでした。</p>', false);
+                return;
+            }
+            try {
+                await deleteRecordsForPuzzleIds(idsToDelete);
+                // reopen stats to refresh view
+                statsBtn.click();
+            } catch (e) {
+                console.error('clearZeroFail error', e);
+                openModal('エラー', '<p>削除中にエラーが発生しました。</p>', false);
+            }
+        });
+    }
+
+    // Delete all records matching any of given puzzleId values
+    async function deleteRecordsForPuzzleIds(ids) {
+        if (!Array.isArray(ids) || ids.length === 0) return;
+        const db = await openDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const idx = store.index('puzzleId');
+            let remaining = ids.length;
+            ids.forEach(id => {
+                const req = idx.openCursor(IDBKeyRange.only(String(id)));
+                req.onsuccess = (ev) => {
+                    const cursor = ev.target.result;
+                    if (cursor) {
+                        cursor.delete();
+                        cursor.continue();
+                    } else {
+                        remaining--;
+                        if (remaining === 0) resolve();
+                    }
+                };
+                req.onerror = (ev) => {
+                    reject(req.error || ev.target.error);
+                };
+            });
+        });
+    }
+
     function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
@@ -5908,7 +5997,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    init();
+    try {
+        init();
+    } catch (e) {
+        console.error('init error', e);
+        if (puzzleInfo) puzzleInfo.textContent = '起動時エラー: ' + (e && e.message ? e.message : String(e));
+    }
+
+    // Show global errors in the UI to help debugging
+    window.addEventListener('error', (ev) => {
+        console.error('Unhandled error', ev.error || ev.message);
+        if (puzzleInfo) puzzleInfo.textContent = 'エラー: ' + (ev.error && ev.error.message ? ev.error.message : ev.message || String(ev));
+    });
 });
 
 </script>
