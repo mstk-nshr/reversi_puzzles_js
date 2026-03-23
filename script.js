@@ -94,6 +94,8 @@ let puzzles = [];
 let currentBoard = [];
 let currentPlayer = 'X';
 let currentPuzzleLine = '';
+let currentPuzzleOriginalLine = '';
+let currentPuzzleTransform = null;
 let currentPuzzleIndex = -1;
 let absolutePuzzleIndex = -1;
 let lastMove = null;
@@ -261,7 +263,11 @@ function loadRandomPuzzle()
     currentPuzzleIndex = randomIndex;
     absolutePuzzleIndex = allPuzzles.indexOf(puzzles[randomIndex]);
     const puzzleData = puzzles[randomIndex].line;
-    renderPuzzle(puzzleData);
+    // store original (for identification) and apply a random transform for display
+    currentPuzzleOriginalLine = puzzleData;
+    const transformed = applyRandomTransformLine(puzzleData);
+    currentPuzzleTransform = transformed.transform;
+    renderPuzzle(transformed.line);
 }
 
 function renderPuzzle(line)
@@ -709,6 +715,60 @@ function calculateHints()
         move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = currentPlayer);
         cachedHints[`${move.r}-${move.c}`] = simulateGame(nextBoard, currentPlayer === 'X' ? 'O' : 'X');
     }
+}
+
+// --- Board transform utilities ---
+function boardStrToMatrix(str)
+{
+    const m = [];
+    for (let r = 0; r < 8; r++) m[r] = str.substring(r*8, (r+1)*8).split('');
+    return m;
+}
+
+function matrixToBoardStr(m)
+{
+    return m.map(row => row.join('')).join('');
+}
+
+function rotateMatrix90(m)
+{
+    const n = Array.from({length:8}, () => Array(8).fill('-'));
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) n[r][c] = m[8-1-c][r];
+    return n;
+}
+
+function flipMatrixHorizontal(m)
+{
+    const n = Array.from({length:8}, () => Array(8).fill('-'));
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) n[r][c] = m[r][8-1-c];
+    return n;
+}
+
+function applyTransform(matrix, transform)
+{
+    // transform: { rot: 0|1|2|3, flip: boolean }
+    let m = matrix;
+    for (let i = 0; i < (transform.rot || 0); i++) m = rotateMatrix90(m);
+    if (transform.flip) m = flipMatrixHorizontal(m);
+    return m;
+}
+
+function applyRandomTransformLine(line)
+{
+    // line format: "<64chars> <turn> ..."
+    const parts = line.split(' ').filter(p => p.length > 0);
+    if (parts.length < 1) return { line, transform: null };
+    const boardStr = parts[0];
+    const rest = parts.slice(1).join(' ');
+    const matrix = boardStrToMatrix(boardStr);
+    // pick random transform from 8 dihedral group elements
+    const rot = Math.floor(Math.random() * 4); // 0..3
+    const flip = Math.random() < 0.5; // true/false
+    const transform = { rot, flip };
+    const outMatrix = applyTransform(matrix, transform);
+    const outBoardStr = matrixToBoardStr(outMatrix);
+    const outLine = outBoardStr + (rest ? (' ' + rest) : '');
+    return { line: outLine, transform };
 }
 
 nextButton.addEventListener('click', loadRandomPuzzle);
