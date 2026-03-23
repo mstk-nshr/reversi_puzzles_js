@@ -27,6 +27,30 @@ The application is built with a clean separation of concerns using vanilla web t
 
 Simply open `index.html` in any modern web browser to start solving puzzles.
 
+## normalize_db.js の使い方
+
+- **概要**: `normalize_db.js` はプロジェクト内の `db.js` に含まれる `DB_DATA`（バックティック文字列）を解析し、盤面表現を回転・反転変換で正規化（同値な盤面のうち最小のビット値を選択）します。標準実行では結果を `normalize_db.json` に書き出します。`--apply` オプションを付けると、バックアップを作成した上で `db.js` を正規化された盤面で上書きします。
+
+- **前提**: Node.js がインストールされていること。
+
+- **使い方（例）**:
+
+```bash
+# 解析して `normalize_db.json` を生成（db.js は変更しない）
+node normalize_db.js
+
+# 解析結果を `db.js` に適用（実行前にバックアップが作成される）
+node normalize_db.js --apply
+```
+
+- **出力**:
+  - `normalize_db.json`: 各レコードごとに `normalizedBoard`, `canonicalHex`, `canonicalDec` などを含む JSON 配列が書き出されます。
+  - `db.js.backup-<timestamp>`: `--apply` 実行時に作成されるバックアップファイル。
+
+- **備考**:
+  - 変更を適用する前に `normalize_db.json` を確認してください。
+  - スクリプトはリポジトリのルートで `db.js` と同じディレクトリにあることを前提に動作します。
+
 ## License
 
 MIT License
