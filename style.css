@@ -381,6 +381,16 @@ main {
     display: none;
 }
 
+.filter-count {
+    color: var(--text-main);
+    /* background: rgba(255, 255, 255, 0.1); */
+    /* padding: 2px 6px;
+    border-radius: 8px; */
+    margin:0.5rem 0; 
+    font-size:0.9rem; 
+    /* color:#333; */
+}
+
 .filter-section {
     display: flex;
     flex-direction: column;

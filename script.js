@@ -231,7 +231,15 @@ function applyFilter()
     if (filterHeader)
     {
         const span = filterHeader.querySelector('span');
-        if (span) span.textContent = `▼ Filter (全${allPuzzles.length}問中 ${puzzles.length}問)`;
+        // if (span) span.textContent = `▼ Filter (全${allPuzzles.length}問中 ${puzzles.length}問)`;
+        if (span) span.textContent = `▼ Filter ( ${puzzles.length} / ${allPuzzles.length} )`;
+    }
+
+    // Also update the filter-content count display (inside expanded panel)
+    const filterCountEl = document.getElementById('filter-count');
+    if (filterCountEl)
+    {
+        filterCountEl.textContent = `${puzzles.length} / ${allPuzzles.length} 問が対象`;
     }
 
     if (puzzles.length === 0)
