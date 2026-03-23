@@ -226,13 +226,19 @@ function applyFilter()
         return turnMatch && emptyMatch;
     });
 
-    // Update filter header to show selected count
+    // Update filter header to show selected count and a compact summary when folded
     const filterHeader = document.getElementById('filter-header');
     if (filterHeader)
     {
         const span = filterHeader.querySelector('span');
-        // if (span) span.textContent = `▼ Filter (全${allPuzzles.length}問中 ${puzzles.length}問)`;
-        if (span) span.textContent = `▼ Filter ( ${puzzles.length} / ${allPuzzles.length} )`;
+        if (span) {
+            const emptySummary = checkedEmptyCounts.length > 0 ? checkedEmptyCounts.slice().sort((a,b)=>a-b).join(',') : '全';
+            let typeSummary = '';
+            if (turnFilterValue === 'all') typeSummary = 'BW';
+            else if (turnFilterValue === 'X') typeSummary = 'B';
+            else typeSummary = 'W';
+            span.textContent = `▼ Filter: ${emptySummary} ${typeSummary} ( ${puzzles.length} / ${allPuzzles.length} )`;
+        }
     }
 
     // Also update the filter-content count display (inside expanded panel)
