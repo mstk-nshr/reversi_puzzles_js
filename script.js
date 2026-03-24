@@ -127,7 +127,7 @@ function init()
 
     if (allPuzzles.length === 0)
     {
-        puzzleInfo.textContent = 'パズルデータが見つかりません。';
+        puzzleInfo.textContent = 'No puzzle data found.';
         return;
     }
 
@@ -234,7 +234,7 @@ function applyFilter()
     {
         const span = filterHeader.querySelector('span');
         if (span) {
-            const emptySummary = checkedEmptyCounts.length > 0 ? checkedEmptyCounts.slice().sort((a,b)=>a-b).join(',') : '全';
+            const emptySummary = checkedEmptyCounts.length > 0 ? checkedEmptyCounts.slice().sort((a,b)=>a-b).join(',') : 'All';
             let typeSummary = '';
             if (turnFilterValue === 'all') typeSummary = 'BW';
             else if (turnFilterValue === 'X') typeSummary = 'B';
@@ -247,12 +247,12 @@ function applyFilter()
     const filterCountEl = document.getElementById('filter-count');
     if (filterCountEl)
     {
-        filterCountEl.textContent = `${puzzles.length} / ${allPuzzles.length} 問が対象`;
+        filterCountEl.textContent = `${puzzles.length} / ${allPuzzles.length} puzzles selected`;
     }
 
     if (puzzles.length === 0)
     {
-        puzzleInfo.textContent = '条件に合うパズルがありません。';
+        puzzleInfo.textContent = 'No puzzles match the filters.';
     }
 }
 
@@ -394,12 +394,10 @@ function updateUI()
         }
     }
 
-    if (currentPuzzleIndex !== -1 && puzzles[currentPuzzleIndex])
-    {
+    if (currentPuzzleIndex !== -1 && puzzles[currentPuzzleIndex]) {
         const p = puzzles[currentPuzzleIndex];
-        const turnText = p.turn === 'X' ? '黒番' : '白番';
-        // puzzleInfo.textContent = `第 ${absolutePuzzleIndex + 1} / ${allPuzzles.length} 問：${turnText}、${p.emptyCells} マス問題です`;
-        puzzleInfo.textContent = `第 ${absolutePuzzleIndex + 1} 問：　${turnText}、${p.emptyCells} マス問題`;
+        const turnText = p.turn === 'X' ? 'Black to move' : 'White to move';
+        puzzleInfo.textContent = `Puzzle ${absolutePuzzleIndex + 1}: ${turnText}, ${p.emptyCells} empty cells`;
     }
 
     return { blackCount, whiteCount };
@@ -447,8 +445,9 @@ function handleCellClick(r, c)
             msgArea.textContent = 'pass😧';
             if (turnArrow) { turnArrow.textContent = '　pass😧　'; turnArrow.style.textAlign = 'center'; }
         } else {
-            msgArea.textContent = '連打👍';
-            if (turnArrow) { turnArrow.textContent = '　連打👍　'; turnArrow.style.textAlign = 'center'; }
+            // msgArea.textContent = '連打👍';
+            msgArea.textContent = 'pass👍';
+            if (turnArrow) { turnArrow.textContent = '　pass👍　'; turnArrow.style.textAlign = 'center'; }
             // msgArea.textContent = 'pass👍';
             // if (turnArrow) { turnArrow.textContent = '　pass👍　'; turnArrow.style.textAlign = 'center'; }
         }
@@ -467,7 +466,7 @@ function handleCellClick(r, c)
     const userWon = (puzzleStartPlayer === 'X' ? counts.blackCount > counts.whiteCount : counts.whiteCount > counts.blackCount);
     msgArea.textContent = resultMsg;
     if (turnArrow) {
-        turnArrow.textContent = userWon ? '　正解！　' : '　失敗！　';
+        turnArrow.textContent = userWon ? '  Correct!  ' : '  Failed!  ';
         turnArrow.style.textAlign = 'center';
     }
 
@@ -548,9 +547,9 @@ function executeBotMove()
 
 function getWinnerMessage(black, white)
 {
-    if (black > white) return `黒の勝ち！ (${black} vs ${white})`;
-    if (white > black) return `白の勝ち！ (${white} vs ${black})`;
-    return `引き分け (${black} vs ${white})`;
+    if (black > white) return `Black wins! (${black} vs ${white})`;
+    if (white > black) return `White wins! (${white} vs ${black})`;
+    return `Draw (${black} vs ${white})`;
 }
 
 function hasValidMove(color)
@@ -868,10 +867,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!window.db) return;
         const stats = await window.db.getStats();
         if (stats.length === 0) {
-            openModal('統計', '<p>記録がありません。</p>', false);
+            openModal('Stats', '<p>No records available.</p>', false);
             return;
         }
-        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">問題ID</th><th>タイプ</th><th>成功</th><th>失敗</th></tr>';
+        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">Puzzle ID</th><th>Type</th><th>Success</th><th>Failure</th></tr>';
         stats.forEach(s => {
             // Determine type (例: "2W" のように空きマス数 + 色)
             let typeVal = '';
@@ -893,7 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<tr data-pid="${escapeHtml(s.puzzleId)}" style="cursor:pointer"><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${escapeHtml(typeVal)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td></tr>`;
         });
         html += '</table>';
-        openModal('統計', html, true);
+        openModal('Stats', html, true);
 
         // テーブル行をクリックすると該当問題を表示
         // setTimeout で DOM 挿入後に query する
@@ -932,23 +931,23 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPuzzle(allPuzzles[found].line);
             return;
         }
-        openModal('エラー', '<p>該当する問題が見つかりませんでした。</p>', false);
+        openModal('Error', '<p>No matching puzzle found.</p>', false);
     }
     
     clearStatsBtn.addEventListener('click', async () => {
-        if (!confirm('記録を全て消去します。よろしいですか？')) return;
+        if (!confirm('Clear all records? Are you sure?')) return;
         await window.db.clearResults();
-        openModal('統計', '<p>記録を消去しました。</p>', false);
+        openModal('Statistics', '<p>Records cleared.</p>', false);
     });
 
     if (clearZeroFailBtn) {
         clearZeroFailBtn.addEventListener('click', async () => {
-            if (!confirm('失敗が0の記録を全て削除します。よろしいですか？')) return;
+            if (!confirm('Delete all records with 0 failures? Are you sure?')) return;
             // gather stats and find puzzleIds with fail === 0
             const stats = await window.db.getStats();
             const idsToDelete = stats.filter(s => s.fail === 0).map(s => s.puzzleId);
             if (idsToDelete.length === 0) {
-                openModal('統計', '<p>該当する記録はありませんでした。</p>', false);
+                openModal('Statistics', '<p>No matching records found.</p>', false);
                 return;
             }
             try {
@@ -957,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statsBtn.click();
             } catch (e) {
                 console.error('clearZeroFail error', e);
-                openModal('エラー', '<p>削除中にエラーが発生しました。</p>', false);
+                openModal('Error', '<p>An error occurred during deletion.</p>', false);
             }
         });
     }
@@ -1008,12 +1007,12 @@ document.addEventListener('DOMContentLoaded', () => {
         init();
     } catch (e) {
         console.error('init error', e);
-        if (puzzleInfo) puzzleInfo.textContent = '起動時エラー: ' + (e && e.message ? e.message : String(e));
+        if (puzzleInfo) puzzleInfo.textContent = 'Startup error: ' + (e && e.message ? e.message : String(e));
     }
 
     // Show global errors in the UI to help debugging
     window.addEventListener('error', (ev) => {
         console.error('Unhandled error', ev.error || ev.message);
-        if (puzzleInfo) puzzleInfo.textContent = 'エラー: ' + (ev.error && ev.error.message ? ev.error.message : ev.message || String(ev));
+        if (puzzleInfo) puzzleInfo.textContent = 'Error: ' + (ev.error && ev.error.message ? ev.error.message : ev.message || String(ev));
     });
 });

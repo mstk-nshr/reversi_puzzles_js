@@ -554,18 +554,18 @@ footer {
                 </div>
                 <div id="filter-content" class="filter-content hidden">
                     <div class="filter-section horizontal">
-                        <span>手番絞り込み:</span>
+                        <span>Turn filter:</span>
                         <div class="radio-group">
-                            <label><input type="radio" name="turn" value="all" checked> 全て</label>
-                            <label><input type="radio" name="turn" value="X"> 黒番</label>
-                            <label><input type="radio" name="turn" value="O"> 白番</label>
+                            <label><input type="radio" name="turn" value="all" checked> All</label>
+                            <label><input type="radio" name="turn" value="X"> Black</label>
+                            <label><input type="radio" name="turn" value="O"> White</label>
                         </div>
                     </div>
                     <div class="filter-divider"></div>
                     <div class="filter-section">
                         <div class="empty-cells-header">
-                            <span>空きマス数:</span>
-                            <button id="select-all-empty" class="btn-text">全選択</button>
+                            <span>Empty cells:</span>
+                            <button id="select-all-empty" class="btn-text">Select all</button>
                         </div>
                         <div class="checkbox-group">
                             <label><input type="checkbox" class="empty-check" value="2"> 2</label>
@@ -579,7 +579,7 @@ footer {
                     </div>
                     <div class="filter-divider"></div>
                     <div class="filter-actions" style="text-align: right; margin-top: 0.25rem;">
-                        <button id="close-filter-btn" class="btn-text">▲ 折りたたむ</button>
+                        <button id="close-filter-btn" class="btn-text">▲ Collapse</button>
                     </div>
                 </div>
             </div>
@@ -587,7 +587,7 @@ footer {
         
         <main>
             <div class="info-action-bar">
-                <p id="puzzle-info">局面を読み込んでいます...</p>
+                <p id="puzzle-info">Loading puzzles...</p>
             </div>
 
             <div id="board-container">
@@ -617,11 +617,11 @@ footer {
                 </div>
             </div>
             <div class="action-buttons">
-                <button id="hint-button" class="btn-secondary" title="ヒント (H)">&#x1F4A1;</button>
-                <button id="reset-button" class="btn-secondary" title="始めからやり直す (R)">&#x21BB;</button>
-                <button id="undo-button" class="btn-secondary" title="１手戻る (U)">&#x21A9;</button>
-                <button id="next-button" class="btn-primary" title="別の問題 (N)">&#x23ED;</button>
-                <button id="stats-button" class="btn-secondary" title="統計 (S)">📊</button>
+                <button id="hint-button" class="btn-secondary" title="Hint (H)">&#x1F4A1;</button>
+                <button id="reset-button" class="btn-secondary" title="Restart (R)">&#x21BB;</button>
+                <button id="undo-button" class="btn-secondary" title="Undo (U)">&#x21A9;</button>
+                <button id="next-button" class="btn-primary" title="Next puzzle (N)">&#x23ED;</button>
+                <button id="stats-button" class="btn-secondary" title="Stats (S)">📊</button>
             </div>
         </main>
 
@@ -634,8 +634,8 @@ footer {
             <h2 id="modal-title">Notification</h2>
             <div id="modal-message"></div>
             <div id="modal-actions" style="margin-top:0.75rem; text-align:right;">
-                <button id="clear-stats-btn" class="btn-text" style="display:none;">全ての記録を消去</button>
-                <button id="clear-zero-fail-btn" class="btn-text" style="display:none;">失敗0を消去</button>
+                <button id="clear-stats-btn" class="btn-text" style="display:none;">Clear all records</button>
+                <button id="clear-zero-fail-btn" class="btn-text" style="display:none;">Clear zero-fail records</button>
                 <button id="modal-ok-btn" class="primary-button">OK</button>
             </div>
         </div>
@@ -5861,10 +5861,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!window.db) return;
         const stats = await window.db.getStats();
         if (stats.length === 0) {
-            openModal('統計', '<p>記録がありません。</p>', false);
+            openModal('Statistics', '<p>No records.</p>', false);
             return;
         }
-        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">問題ID</th><th>タイプ</th><th>成功</th><th>失敗</th></tr>';
+        let html = '<table style="width:100%; border-collapse:collapse;"><tr><th style="text-align:left">Puzzle ID</th><th>Type</th><th>Success</th><th>Fail</th></tr>';
         stats.forEach(s => {
             // Determine type (例: "2W" のように空きマス数 + 色)
             let typeVal = '';
@@ -5886,7 +5886,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<tr data-pid="${escapeHtml(s.puzzleId)}" style="cursor:pointer"><td style="padding:4px 8px">${escapeHtml(s.puzzleId)}</td><td style="text-align:center">${escapeHtml(typeVal)}</td><td style="text-align:center">${s.success}</td><td style="text-align:center">${s.fail}</td></tr>`;
         });
         html += '</table>';
-        openModal('統計', html, true);
+        openModal('Statistics', html, true);
 
         // テーブル行をクリックすると該当問題を表示
         // setTimeout で DOM 挿入後に query する
@@ -5925,13 +5925,13 @@ document.addEventListener('DOMContentLoaded', () => {
             renderPuzzle(allPuzzles[found].line);
             return;
         }
-        openModal('エラー', '<p>該当する問題が見つかりませんでした。</p>', false);
+        openModal('Error', '<p>No matching puzzle found.</p>', false);
     }
     
     clearStatsBtn.addEventListener('click', async () => {
-        if (!confirm('記録を全て消去します。よろしいですか？')) return;
+        if (!confirm('Clear all records? Are you sure?')) return;
         await window.db.clearResults();
-        openModal('統計', '<p>記録を消去しました。</p>', false);
+        openModal('Statistics', '<p>Records cleared.</p>', false);
     });
 
     if (clearZeroFailBtn) {
