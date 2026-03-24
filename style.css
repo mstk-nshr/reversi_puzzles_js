@@ -548,4 +548,5 @@ footer {
     padding: 0.5rem 1rem;  /* 上下の余白を増やす（縦方向のパディング） */
     border-radius: 10px;
     font-weight: 700;
+    margin-top: 1rem;
 }
