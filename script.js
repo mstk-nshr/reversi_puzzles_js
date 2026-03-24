@@ -101,6 +101,7 @@ let absolutePuzzleIndex = -1;
 let lastMove = null;
 let showHints = false;
 let cachedHints = {};
+let cachedBestHint = null;
 let puzzleStartPlayer = 'X';
 let isBotEnabled = true;
 let isBotThinking = false;
@@ -277,6 +278,7 @@ function renderPuzzle(line)
     moveHistory = []; // clear undo history on new puzzle
     // showHints = false; // Persistent hints
     cachedHints = {};
+    cachedBestHint = null;
     const parts = line.split(' ').filter(p => p.length > 0);
     if (parts.length < 2) return;
 
@@ -355,10 +357,12 @@ function updateUI()
                     cell.classList.add('valid-move');
                     if (showHints && cachedHints[`${r}-${c}`] !== undefined)
                     {
+                        const key = `${r}-${c}`;
                         const hintText = document.createElement('span');
                         hintText.className = 'hint-text';
-                        const score = cachedHints[`${r}-${c}`];
+                        const score = cachedHints[key];
                         hintText.textContent = (score > 0 ? '+' : '') + score;
+                        if (key === cachedBestHint) hintText.classList.add('best');
                         cell.appendChild(hintText);
                     }
                 }
@@ -418,6 +422,7 @@ function handleCellClick(r, c)
 
     lastMove = { r, c };
     cachedHints = {};
+    cachedBestHint = null;
     currentBoard[r][c] = currentPlayer;
     flipList.forEach(([fr, fc]) => { currentBoard[fr][fc] = currentPlayer; });
 
@@ -582,6 +587,7 @@ function undoLastMove()
     currentPlayer = snapshot.player;
     lastMove = snapshot.lastMove;
     cachedHints = {};
+    cachedBestHint = null;
     const msgArea = document.getElementById('next-turn-msg');
     if (msgArea) msgArea.textContent = '　';
     if (turnArrow) turnArrow.textContent = '';
@@ -707,12 +713,28 @@ function calculateHints()
 {
     const moves = getValidMoves(currentBoard, currentPlayer);
     cachedHints = {};
+    cachedBestHint = null;
     for (const move of moves)
     {
         const nextBoard = currentBoard.map(row => [...row]);
         nextBoard[move.r][move.c] = currentPlayer;
         move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = currentPlayer);
         cachedHints[`${move.r}-${move.c}`] = simulateGame(nextBoard, currentPlayer === 'X' ? 'O' : 'X');
+    }
+    const keys = Object.keys(cachedHints);
+    if (keys.length === 0) return;
+    if (currentPlayer === 'X') {
+        let best = -Infinity;
+        for (const k of keys) {
+            const v = cachedHints[k];
+            if (v > best) { best = v; cachedBestHint = k; }
+        }
+    } else {
+        let best = Infinity;
+        for (const k of keys) {
+            const v = cachedHints[k];
+            if (v < best) { best = v; cachedBestHint = k; }
+        }
     }
 }
 
