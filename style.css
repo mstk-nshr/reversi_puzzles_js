@@ -354,6 +354,14 @@ main {
     padding-bottom: 0.3rem;
 }
 
+/* When the filter panel is collapsed: remove border and make background transparent */
+.control-panel.consolidated:has(.filter-content.hidden) {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
 .filter-header {
     cursor: pointer;
     text-align: center;
