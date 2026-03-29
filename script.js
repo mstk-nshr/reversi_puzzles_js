@@ -510,43 +510,49 @@ function checkBotTurn()
 
 function executeBotMove()
 {
-    const moves = getValidMoves(currentBoard, currentPlayer);
-    if (moves.length === 0) return;
-
     isBotThinking = true;
 
-    // Use simulateGame to find the best move (minimax)
+    const { black, white } = boardToBitboards(currentBoard);
+    const p = (currentPlayer === 'X' ? black : white);
+    const o = (currentPlayer === 'X' ? white : black);
+    const emptyMask = (~(black | white)) & MASK64;
+    const pc = popcount(p);
+    const oc = popcount(o);
+
+    memoBB.clear();
+
+    const moves = [];
+    let t = emptyMask;
+    while (t !== 0n) {
+        const s = t & -t;
+        const flipped = getFlippedMaskBB(s, p, o);
+        if (flipped !== 0n) {
+            moves.push({ s, flipped });
+        }
+        t ^= s;
+    }
+
+    if (moves.length === 0) {
+        isBotThinking = false;
+        return;
+    }
+
     let bestMove = moves[0];
-    let bestValue = (currentPlayer === 'X' ? -100 : 100);
+    let bestValue = -100;
 
-    for (const move of moves)
-    {
-        const nextBoard = currentBoard.map(row => [...row]);
-        nextBoard[move.r][move.c] = currentPlayer;
-        move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = currentPlayer);
-
-        const value = simulateGame(nextBoard, currentPlayer === 'X' ? 'O' : 'X');
-        if (currentPlayer === 'X')
-        {
-            if (value > bestValue)
-            {
-                bestValue = value;
-                bestMove = move;
-            }
-        } else
-        {
-            if (value < bestValue)
-            {
-                bestValue = value;
-                bestMove = move;
-            }
+    for (const move of moves) {
+        const k = popcount(move.flipped);
+        const value = -solveBB(o ^ move.flipped, p | move.s | move.flipped, oc - k, pc + 1 + k, emptyMask ^ move.s, false);
+        if (value > bestValue) {
+            bestValue = value;
+            bestMove = move;
         }
     }
 
-    setTimeout(() =>
-    {
+    setTimeout(() => {
         isBotThinking = false;
-        handleCellClick(bestMove.r, bestMove.c);
+        const index = Number(BigInt.asUintN(64, bestMove.s).toString(2).length - 1);
+        handleCellClick(Math.floor(index / 8), index % 8);
     }, showHints ? 2000 : 1000);
 }
 
@@ -631,109 +637,124 @@ function isValidMove(r, c, color)
     return allFlips;
 }
 
-function getValidMoves(board, color)
-{
-    const moves = [];
-    for (let r = 0; r < 8; r++)
-    {
-        for (let c = 0; c < 8; c++)
-        {
-            const flips = isValidMoveOnBoard(board, r, c, color);
-            if (flips.length > 0) moves.push({ r, c, flips });
+// --- Bitboard Engine ---
+const MASK64 = 0xffffffffffffffffn;
+const H_MASK = 0x7e7e7e7e7e7e7e7en;
+const memoBB = new Map();
+
+function boardToBitboards(board) {
+    let black = 0n, white = 0n;
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const char = board[r][c];
+            if (char === 'X') black |= (1n << BigInt(r * 8 + c));
+            else if (char === 'O') white |= (1n << BigInt(r * 8 + c));
         }
     }
-    return moves;
+    return { black, white };
 }
 
-function isValidMoveOnBoard(board, r, c, color)
-{
-    if (board[r][c] !== '-') return [];
-    const opponent = (color === 'X' ? 'O' : 'X');
-    const directions = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
-    let allFlips = [];
-    for (const [dr, dc] of directions)
-    {
-        let currentFlips = [];
-        let tr = r + dr, tc = c + dc;
-        while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && board[tr][tc] === opponent)
-        {
-            currentFlips.push([tr, tc]);
-            tr += dr; tc += dc;
-        }
-        if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8 && board[tr][tc] === color && currentFlips.length > 0)
-        {
-            allFlips = allFlips.concat(currentFlips);
-        }
-    }
-    return allFlips;
+function getFlippedMaskBB(s, p, o) {
+    let flipped = 0n, t, om = o & H_MASK;
+    // Right
+    t = (s << 1n) & om; t |= (t << 1n) & om; t |= (t << 1n) & om; t |= (t << 1n) & om; t |= (t << 1n) & om; t |= (t << 1n) & om;
+    if ((t << 1n) & p) flipped |= t;
+    // Left
+    t = (s >> 1n) & om; t |= (t >> 1n) & om; t |= (t >> 1n) & om; t |= (t >> 1n) & om; t |= (t >> 1n) & om; t |= (t >> 1n) & om;
+    if ((t >> 1n) & p) flipped |= t;
+    // Down
+    t = (s << 8n) & o; t |= (t << 8n) & o; t |= (t << 8n) & o; t |= (t << 8n) & o; t |= (t << 8n) & o; t |= (t << 8n) & o;
+    if ((t << 8n) & p) flipped |= t;
+    // Up
+    t = (s >> 8n) & o; t |= (t >> 8n) & o; t |= (t >> 8n) & o; t |= (t >> 8n) & o; t |= (t >> 8n) & o; t |= (t >> 8n) & o;
+    if ((t >> 8n) & p) flipped |= t;
+    // Diagonals
+    t = (s << 9n) & om; t |= (t << 9n) & om; t |= (t << 9n) & om; t |= (t << 9n) & om; t |= (t << 9n) & om; t |= (t << 9n) & om;
+    if ((t << 9n) & p) flipped |= t;
+    t = (s << 7n) & om; t |= (t << 7n) & om; t |= (t << 7n) & om; t |= (t << 7n) & om; t |= (t << 7n) & om; t |= (t << 7n) & om;
+    if ((t << 7n) & p) flipped |= t;
+    t = (s >> 7n) & om; t |= (t >> 7n) & om; t |= (t >> 7n) & om; t |= (t >> 7n) & om; t |= (t >> 7n) & om; t |= (t >> 7n) & om;
+    if ((t >> 7n) & p) flipped |= t;
+    t = (s >> 9n) & om; t |= (t >> 9n) & om; t |= (t >> 9n) & om; t |= (t >> 9n) & om; t |= (t >> 9n) & om; t |= (t >> 9n) & om;
+    if ((t >> 9n) & p) flipped |= t;
+    return flipped;
 }
 
-function simulateGame(board, player)
-{
-    const moves = getValidMoves(board, player);
-    if (moves.length === 0)
-    {
-        const nextPlayer = (player === 'X' ? 'O' : 'X');
-        if (getValidMoves(board, nextPlayer).length === 0)
-        {
-            let black = 0, white = 0;
-            for (let r = 0; r < 8; r++)
-            {
-                for (let c = 0; c < 8; c++)
-                {
-                    if (board[r][c] === 'X') black++;
-                    else if (board[r][c] === 'O') white++;
-                }
-            }
-            return black - white;
+function solveBB(p, o, pc, oc, emptyMask, isPass) {
+    const key = (p << 64n) | o;
+    const cached = memoBB.get(key);
+    if (cached !== undefined) return cached;
+    let bestValue = -100, t = emptyMask, hasMove = false;
+    while (t !== 0n) {
+        const s = t & -t;
+        const flipped = getFlippedMaskBB(s, p, o);
+        if (flipped !== 0n) {
+            hasMove = true;
+            let k = popcount(flipped);
+            const v = -solveBB(o ^ flipped, p | s | flipped, oc - k, pc + 1 + k, emptyMask ^ s, false);
+            if (v > bestValue) bestValue = v;
         }
-        return simulateGame(board, nextPlayer);
+        t ^= s;
     }
-
-    let bestValue = (player === 'X' ? -100 : 100);
-    for (const move of moves)
-    {
-        const nextBoard = board.map(row => [...row]);
-        nextBoard[move.r][move.c] = player;
-        move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = player);
-
-        const value = simulateGame(nextBoard, player === 'X' ? 'O' : 'X');
-        if (player === 'X')
-        {
-            bestValue = Math.max(bestValue, value);
-        } else
-        {
-            bestValue = Math.min(bestValue, value);
-        }
+    if (!hasMove) {
+        if (isPass) return pc - oc;
+        const result = -solveBB(o, p, oc, pc, emptyMask, true);
+        memoBB.set(key, result);
+        return result;
     }
+    memoBB.set(key, bestValue);
     return bestValue;
+}
+
+function popcount(n) {
+    let count = 0;
+    let temp = n;
+    while (temp !== 0n) { temp &= (temp - 1n); count++; }
+    return count;
 }
 
 function calculateHints()
 {
-    const moves = getValidMoves(currentBoard, currentPlayer);
+    const { black, white } = boardToBitboards(currentBoard);
+    const p = (currentPlayer === 'X' ? black : white);
+    const o = (currentPlayer === 'X' ? white : black);
+    const emptyMask = (~(black | white)) & MASK64;
+    const pc = popcount(p);
+    const oc = popcount(o);
+
     cachedHints = {};
     cachedBestHint = null;
-    for (const move of moves)
-    {
-        const nextBoard = currentBoard.map(row => [...row]);
-        nextBoard[move.r][move.c] = currentPlayer;
-        move.flips.forEach(([fr, fc]) => nextBoard[fr][fc] = currentPlayer);
-        cachedHints[`${move.r}-${move.c}`] = simulateGame(nextBoard, currentPlayer === 'X' ? 'O' : 'X');
-    }
-    const keys = Object.keys(cachedHints);
-    if (keys.length === 0) return;
-    if (currentPlayer === 'X') {
-        let best = -Infinity;
-        for (const k of keys) {
-            const v = cachedHints[k];
-            if (v > best) { best = v; cachedBestHint = k; }
+    memoBB.clear();
+
+    const moves = [];
+    let t = emptyMask;
+    while (t !== 0n) {
+        const s = t & -t;
+        const flipped = getFlippedMaskBB(s, p, o);
+        if (flipped !== 0n) {
+            const index = Number(BigInt.asUintN(64, s).toString(2).length - 1);
+            const r = Math.floor(index / 8);
+            const c = index % 8;
+            const k = popcount(flipped);
+            const relativeScore = -solveBB(o ^ flipped, p | s | flipped, oc - k, pc + 1 + k, emptyMask ^ s, false);
+            // Convert relative score to absolute score (Black - White)
+            // If currentPlayer is 'X' (Black), score is already (X - O)
+            // If currentPlayer is 'O' (White), score is (O - X), so negate to get (X - O)
+            const score = (currentPlayer === 'X' ? relativeScore : -relativeScore);
+            cachedHints[`${r}-${c}`] = score;
+            moves.push({ r, c, score, key: `${r}-${c}` });
         }
-    } else {
-        let best = Infinity;
-        for (const k of keys) {
-            const v = cachedHints[k];
-            if (v < best) { best = v; cachedBestHint = k; }
+        t ^= s;
+    }
+
+    if (moves.length === 0) return;
+    
+    let bestScore = (currentPlayer === 'X' ? -Infinity : Infinity);
+    for (const m of moves) {
+        if (currentPlayer === 'X') {
+            if (m.score > bestScore) { bestScore = m.score; cachedBestHint = m.key; }
+        } else {
+            if (m.score < bestScore) { bestScore = m.score; cachedBestHint = m.key; }
         }
     }
 }
